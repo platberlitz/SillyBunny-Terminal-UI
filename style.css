@@ -1031,11 +1031,10 @@ body.sbterm.sbterm-minimal #sbterm-banner {
 
 body.sbterm.sbterm-minimal .sbterm-mascot {
     margin: 0;
-    color: var(--sbterm-accent2);
-    font: 700 min(10.5px, calc(var(--topBarBlockSize) / 6 - 0.5px))/0.92 var(--monoFontFamily);
-    letter-spacing: -0.06em;
-    text-shadow: 0 0 7px var(--sbterm-glow);
-    white-space: pre;
+    inline-size: auto;
+    block-size: calc(var(--topBarBlockSize) - 7px);
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px var(--sbterm-glow));
 }
 
 body.sbterm.sbterm-minimal .sbterm-banner-copy {
@@ -1107,15 +1106,14 @@ body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePa
 }
 
 body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::before {
-    content: '▄█▄     ▄█▄\A███▄   ▄███\A███████████\A██  ▀ ▀  ██\A██   ▄   ██\A ▀██▄▄▄██▀ ';
+    content: '';
     grid-area: mascot;
     align-self: start;
     margin-block-start: 0.1rem;
-    color: var(--sbterm-accent2);
-    font: 700 10px/0.92 var(--monoFontFamily);
-    letter-spacing: -0.06em;
-    text-shadow: 0 0 7px var(--sbterm-glow);
-    white-space: pre;
+    inline-size: 4.5rem;
+    block-size: 3.5rem;
+    background: url('/scripts/extensions/third-party/SillyBunny-Terminal-UI/logo.png') no-repeat bottom center / contain;
+    filter: drop-shadow(0 0 7px var(--sbterm-glow));
 }
 
 body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::after {

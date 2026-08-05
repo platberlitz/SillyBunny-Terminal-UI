@@ -5,14 +5,7 @@ const STATUS_ID = 'sbterm-statusline';
 const COMMAND_NAME = 'sbterm';
 const HOME_COMMAND_NAME = 'home';
 const HOME_VISIBLE_CLASS = 'sbterm-home-visible';
-const BUNNY = [
-    '▄█▄     ▄█▄',
-    '███▄   ▄███',
-    '███████████',
-    '██  ▀ ▀  ██',
-    '██   ▄   ██',
-    ' ▀██▄▄▄██▀ ',
-].join('\n');
+const LOGO_URL = '/scripts/extensions/third-party/SillyBunny-Terminal-UI/logo.png';
 
 const PALETTES = [
     ['phosphor-green', 'Phosphor Green'],
@@ -281,7 +274,9 @@ function ensureStatusline() {
     banner.id = BANNER_ID;
     banner.hidden = !active || !getSettings().enabled;
 
-    const mascot = el('pre', 'sbterm-mascot', BUNNY);
+    const mascot = el('img', 'sbterm-mascot');
+    mascot.src = LOGO_URL;
+    mascot.alt = '';
     mascot.setAttribute('aria-hidden', 'true');
 
     const copy = el('div', 'sbterm-banner-copy');
