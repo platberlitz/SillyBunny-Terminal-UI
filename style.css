@@ -1025,13 +1025,14 @@ body.sbterm.sbterm-minimal #sbterm-banner {
     align-items: start;
     gap: 2ch;
     margin-inline: auto;
-    padding: 10px clamp(10px, 2.5vw, 28px) 8px;
+    padding-block: 3px;
+    padding-inline: clamp(10px, 2.5vw, 28px);
 }
 
 body.sbterm.sbterm-minimal .sbterm-mascot {
     margin: 0;
     color: var(--sbterm-accent2);
-    font: 700 10px/0.92 var(--monoFontFamily);
+    font: 700 min(10.5px, calc(var(--topBarBlockSize) / 6 - 0.5px))/0.92 var(--monoFontFamily);
     letter-spacing: -0.06em;
     text-shadow: 0 0 7px var(--sbterm-glow);
     white-space: pre;
@@ -1066,6 +1067,9 @@ body.sbterm.sbterm-minimal #sbterm-statusline {
     font-weight: 450;
     letter-spacing: 0;
     line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 body.sbterm.sbterm-minimal #sheld {
