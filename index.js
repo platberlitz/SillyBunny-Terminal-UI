@@ -1,7 +1,18 @@
 const MODULE = 'SillyBunny-Terminal-UI';
 const DRAWER_ID = 'sbterm-settings-drawer';
+const BANNER_ID = 'sbterm-banner';
 const STATUS_ID = 'sbterm-statusline';
 const COMMAND_NAME = 'sbterm';
+const HOME_COMMAND_NAME = 'home';
+const HOME_VISIBLE_CLASS = 'sbterm-home-visible';
+const BUNNY = [
+    '▄█▄     ▄█▄',
+    '███▄   ▄███',
+    '███████████',
+    '██  ▀ ▀  ██',
+    '██   ▄   ██',
+    ' ▀██▄▄▄██▀ ',
+].join('\n');
 
 const PALETTES = [
     ['phosphor-green', 'Phosphor Green'],
@@ -64,9 +75,11 @@ const COMMAND_OPTIONS = [
 let active = false;
 let commandParser = null;
 let registeredCommand = null;
+let registeredHomeCommand = null;
 let domController = null;
 let conversationObserver = null;
 let eventBindings = [];
+let nativeHomeClick = false;
 let renderSequence = 0;
 let tokenSequence = 0;
 let lastPromptTokens = null;
@@ -123,6 +136,10 @@ function save() {
     ctx()?.saveSettingsDebounced?.();
 }
 
+function hideHome() {
+    if (typeof document !== 'undefined') document.body?.classList.remove(HOME_VISIBLE_CLASS);
+}
+
 function apply() {
     if (typeof document === 'undefined' || !document.body) {
         return;
@@ -140,6 +157,9 @@ function apply() {
         delete document.body.dataset.sbtermPalette;
     }
 
+    const banner = document.getElementById(BANNER_ID);
+    if (banner) banner.hidden = !enabled;
+
     syncDrawer();
     void renderStatusline();
 }
@@ -154,6 +174,7 @@ function updateSettings(patch) {
         }
     }
     if (changed) {
+        if ('enabled' in patch || 'minimal' in patch) hideHome();
         settings.version = DEFAULTS.version;
         save();
         apply();
@@ -256,12 +277,24 @@ function ensureStatusline() {
         return null;
     }
 
+    const banner = el('div', 'sbterm-banner');
+    banner.id = BANNER_ID;
+    banner.hidden = !active || !getSettings().enabled;
+
+    const mascot = el('pre', 'sbterm-mascot', BUNNY);
+    mascot.setAttribute('aria-hidden', 'true');
+
+    const copy = el('div', 'sbterm-banner-copy');
+    copy.appendChild(el('strong', 'sbterm-banner-title', 'sillybunny terminal'));
+
     const status = el('div', 'sbterm-statusline');
     status.id = STATUS_ID;
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     status.setAttribute('aria-atomic', 'true');
-    brand.appendChild(status);
+    copy.appendChild(status);
+    banner.append(mascot, copy);
+    brand.appendChild(banner);
     return status;
 }
 
@@ -462,6 +495,26 @@ async function openConversation() {
     return Boolean(await conversation.openConversationWorkspaceFromWelcome?.());
 }
 
+async function showHome() {
+    const home = document.getElementById('sb-home-toggle');
+    if (!home) return false;
+
+    if (!document.querySelector('.welcomePanel')) {
+        const closeCurrentChat = ctx()?.closeCurrentChat;
+        if (typeof closeCurrentChat !== 'function' || !await closeCurrentChat()) return false;
+    }
+
+    if (!document.querySelector('.welcomePanel')) return false;
+    document.body?.classList.add(HOME_VISIBLE_CLASS);
+    nativeHomeClick = true;
+    try {
+        home.click();
+    } finally {
+        nativeHomeClick = false;
+    }
+    return true;
+}
+
 async function openDestination(destination) {
     const shellTarget = SHELL_DESTINATIONS[destination];
     const shell = globalThis.SillyBunnyShell;
@@ -482,12 +535,8 @@ async function openDestination(destination) {
             return true;
         case 'appearance':
             return openAppearance();
-        case 'home': {
-            const home = document.getElementById('sb-home-toggle');
-            if (!home) return false;
-            home.click();
-            return true;
-        }
+        case 'home':
+            return showHome();
         case 'conversation':
             return openConversation();
         case 'roleplay': {
@@ -552,11 +601,22 @@ async function runSbtermCommand(_named, unnamed) {
     return `unknown action: ${input}`;
 }
 
-function unregisterCommand() {
+async function runHomeCommand() {
+    if (!active) return 'Terminal UI is disabled.';
+    const opened = await showHome();
+    if (!opened) notify('Home is unavailable.', 'warning');
+    return opened ? 'home' : 'home unavailable';
+}
+
+function unregisterCommands() {
     if (registeredCommand && commandParser?.commands?.[COMMAND_NAME] === registeredCommand) {
         delete commandParser.commands[COMMAND_NAME];
     }
+    if (registeredHomeCommand && commandParser?.commands?.[HOME_COMMAND_NAME] === registeredHomeCommand) {
+        delete commandParser.commands[HOME_COMMAND_NAME];
+    }
     registeredCommand = null;
+    registeredHomeCommand = null;
     commandParser = null;
 }
 
@@ -597,14 +657,56 @@ function registerCommand() {
         parser.addCommandObject(command);
         return true;
     } catch (error) {
-        unregisterCommand();
+        if (parser.commands?.[COMMAND_NAME] === command) delete parser.commands[COMMAND_NAME];
+        registeredCommand = null;
         console.error(`Terminal UI could not register /${COMMAND_NAME}`, error);
         return false;
     }
 }
 
+function registerHomeCommand() {
+    if (!active || registeredHomeCommand) return Boolean(registeredHomeCommand);
+    const context = ctx();
+    const parser = context?.SlashCommandParser;
+    const SlashCommand = context?.SlashCommand;
+    if (!parser || !SlashCommand) return false;
+
+    if (parser.commands?.[HOME_COMMAND_NAME]) {
+        console.error(`Terminal UI could not register /${HOME_COMMAND_NAME}: name collision`);
+        return false;
+    }
+
+    const command = SlashCommand.fromProps({
+        name: HOME_COMMAND_NAME,
+        callback: runHomeCommand,
+        helpString: 'Reveal the native SillyBunny Home page hidden by terminal density.',
+        returns: 'home or home unavailable',
+    });
+
+    commandParser = parser;
+    registeredHomeCommand = command;
+    try {
+        parser.addCommandObject(command);
+        return true;
+    } catch (error) {
+        if (parser.commands?.[HOME_COMMAND_NAME] === command) delete parser.commands[HOME_COMMAND_NAME];
+        registeredHomeCommand = null;
+        console.error(`Terminal UI could not register /${HOME_COMMAND_NAME}`, error);
+        return false;
+    }
+}
+
+function registerCommands() {
+    registerCommand();
+    registerHomeCommand();
+}
+
 function isOwnedCommand(input) {
-    return active && registeredCommand && /^\/sbterm(?:\s|$)/.test(String(input ?? '').trim());
+    const command = String(input ?? '').trim();
+    return active && (
+        (registeredCommand && /^\/sbterm(?:\s|$)/.test(command)) ||
+        (registeredHomeCommand && /^\/home\s*$/.test(command))
+    );
 }
 
 function clearCommandInput(input) {
@@ -629,8 +731,14 @@ function executeOwnedCommand(event, input) {
     return true;
 }
 
-function onAlternateSendClick(event) {
-    if (!event.target?.closest?.('#gg_simple_send_button')) return;
+function onDocumentClick(event) {
+    if (event.type === 'click' && !nativeHomeClick && document.body?.classList.contains('sbterm-minimal') && event.target?.closest?.('#sb-home-toggle')) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        void showHome();
+        return;
+    }
+    if (!event.target?.closest?.('#send_but') && !event.target?.closest?.('#gg_simple_send_button')) return;
     const input = document.getElementById('send_textarea');
     if (input) executeOwnedCommand(event, input);
 }
@@ -642,12 +750,14 @@ function onConversationSubmit(event) {
     queueConversationStatusRefresh();
 }
 
-function onConversationKeydown(event) {
-    if (event.target?.id !== 'sb_conversation_input' || event.key !== 'Enter' || event.isComposing) return;
+function onCommandKeydown(event) {
+    const conversation = event.target?.id === 'sb_conversation_input';
+    if (!conversation && event.target?.id !== 'send_textarea') return;
+    if (event.key !== 'Enter' || event.isComposing) return;
     if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
     if (!ctx()?.shouldSendOnEnter?.()) return;
     executeOwnedCommand(event, event.target);
-    queueConversationStatusRefresh();
+    if (conversation) queueConversationStatusRefresh();
 }
 
 function observeConversationTimeline() {
@@ -671,9 +781,10 @@ function bindDomEvents() {
     if (typeof document === 'undefined' || domController) return;
     domController = new AbortController();
     const options = { capture: true, signal: domController.signal };
-    document.addEventListener('click', onAlternateSendClick, options);
+    document.addEventListener('click', onDocumentClick, options);
+    document.addEventListener('touchend', onDocumentClick, options);
     document.addEventListener('submit', onConversationSubmit, options);
-    document.addEventListener('keydown', onConversationKeydown, options);
+    document.addEventListener('keydown', onCommandKeydown, options);
     globalThis.addEventListener?.('sb:conversation-workspace-state-changed', queueConversationStatusRefresh, { signal: domController.signal });
 }
 
@@ -693,16 +804,21 @@ function bindHostEvents() {
     const ready = () => {
         if (!active) return;
         renderDrawer();
-        registerCommand();
+        registerCommands();
         ensureStatusline();
         observeConversationTimeline();
         apply();
     };
     const rerender = () => void renderStatusline();
     const invalidate = () => invalidatePromptTokens();
+    const chatChanged = () => {
+        hideHome();
+        invalidatePromptTokens();
+    };
 
     bind('APP_READY', ready);
-    for (const name of ['CHAT_CHANGED', 'MAIN_API_CHANGED', 'ONLINE_STATUS_CHANGED', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'SETTINGS_UPDATED']) {
+    bind('CHAT_CHANGED', chatChanged);
+    for (const name of ['MAIN_API_CHANGED', 'ONLINE_STATUS_CHANGED', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'SETTINGS_UPDATED']) {
         bind(name, invalidate);
     }
     for (const name of ['CHAT_RENAMED', 'CHARACTER_RENAMED', 'GROUP_UPDATED', 'GENERATION_AFTER_COMMANDS', 'GENERATION_ENDED', 'GENERATION_STOPPED']) {
@@ -724,17 +840,18 @@ function unbindEvents() {
 function init() {
     if (active) {
         renderDrawer();
-        registerCommand();
+        registerCommands();
         apply();
         return;
     }
 
     active = true;
+    hideHome();
     const { changed } = ensureSettings();
     if (changed) save();
     bindHostEvents();
     bindDomEvents();
-    registerCommand();
+    registerCommands();
     renderDrawer();
     ensureStatusline();
     apply();
@@ -744,13 +861,13 @@ function deactivate() {
     active = false;
     renderSequence += 1;
     tokenSequence += 1;
-    unregisterCommand();
+    unregisterCommands();
     unbindEvents();
 
     if (typeof document !== 'undefined') {
         document.getElementById(DRAWER_ID)?.remove();
-        document.getElementById(STATUS_ID)?.remove();
-        document.body?.classList.remove('sbterm', 'sbterm-minimal', 'sbterm-crt');
+        document.getElementById(BANNER_ID)?.remove();
+        document.body?.classList.remove('sbterm', 'sbterm-minimal', 'sbterm-crt', HOME_VISIBLE_CLASS);
         if (document.body) delete document.body.dataset.sbtermPalette;
     }
 }

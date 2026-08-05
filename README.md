@@ -12,13 +12,15 @@ The normal SillyBunny composer remains the only prompt:
 - A leading `/` uses SillyBunny slash commands and autocomplete.
 - `Alt+Up` and `Alt+Down` use native input history.
 - `Ctrl+Space` opens or expands native command autocomplete.
-- Touch and narrow layouts retain visible 44px controls and the host's send behavior.
+- Terminal density starts as a centered, prompt-only REPL; `/home` reveals the native Home page when needed.
+- The empty state shows a Claude Code-style guide next to the prompt mascot: `/home`, `/newchat`, `/chat-manager`, `/sbterm characters`, `/sbterm groups`, and `/sbterm`.
+- The bottom chat-management bar is removed. Touch layouts retain the native 44px send control because Enter-to-send is disabled there by default.
 
-Terminal density is enabled by default. Optional controls reveal on hover or keyboard focus; send, stop, script, attachment, confirmation, and close controls remain available. Run `/sbterm ui full` at any time to restore the complete host chrome.
+Terminal density is enabled by default. It removes optional composer controls and keeps only conditional stop/script controls plus mobile send. Run `/sbterm ui full` at any time to restore the complete host chrome.
 
 ## `/sbterm`
 
-Terminal UI adds one command and does not replace native commands such as `/api`, `/model`, `/preset`, `/theme`, `/chat-manager`, `/go`, or `/newchat`.
+Terminal UI adds `/sbterm` and `/home` and does not replace native commands such as `/api`, `/model`, `/preset`, `/theme`, `/chat-manager`, `/go`, or `/newchat`.
 
 | Command | Action |
 | --- | --- |
@@ -28,6 +30,7 @@ Terminal UI adds one command and does not replace native commands such as `/api`
 | `/sbterm palette <slug>` | Select one of the 13 palettes |
 | `/sbterm crt on` / `/sbterm crt off` | Toggle the optional CRT overlay |
 | `/sbterm <destination>` | Open a SillyBunny shell or workspace |
+| `/home` | Reveal the native Home page hidden by terminal density |
 
 Destinations: `workspace`, `presets`, `api`, `sampling`, `formatting`, `agents`, `customize`, `settings`, `extensions`, `background`, `server`, `logs`, `characters`, `groups`, `editor`, `world-info`, `persona`, `import`, `search`, `chat-tools`, `appearance`, `home`, `conversation`, and `roleplay`.
 

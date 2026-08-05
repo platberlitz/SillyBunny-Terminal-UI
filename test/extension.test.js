@@ -110,6 +110,18 @@ class FakeDocument {
         if (selector === '#sb-topbar-inner > .sb-topbar-brand') {
             return this.getElementById('brand');
         }
+        if (selector.startsWith('.')) {
+            const className = selector.slice(1);
+            const visit = node => {
+                if (node.classList.contains(className)) return node;
+                for (const child of node.children) {
+                    const match = visit(child);
+                    if (match) return match;
+                }
+                return null;
+            };
+            return visit(this.body);
+        }
         return null;
     }
 
@@ -125,6 +137,7 @@ class FakeDocument {
     }
 
     dispatch(type, event) {
+        event.type = type;
         for (const handler of this.listeners.get(type) ?? []) handler(event);
     }
 }
@@ -165,7 +178,16 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     topbar.appendChild(brand);
     const sendInput = new FakeElement('textarea');
     sendInput.id = 'send_textarea';
-    document.body.append(settingsHost, topbar, sendInput);
+    const chat = new FakeElement('div');
+    chat.id = 'chat';
+    const welcome = new FakeElement('div');
+    welcome.className = 'welcomePanel';
+    chat.appendChild(welcome);
+    const home = new FakeElement('button');
+    home.id = 'sb-home-toggle';
+    let homeClicks = 0;
+    home.click = () => homeClicks += 1;
+    document.body.append(settingsHost, topbar, chat, sendInput, home);
 
     const eventSource = new FakeEventSource();
     const eventTypes = Object.fromEntries([
@@ -240,11 +262,15 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(document.listenerCount('submit'), 1);
     assert.equal(document.listenerCount('keydown'), 1);
     assert.equal(document.listenerCount('click'), 1);
+    assert.equal(document.listenerCount('touchend'), 1);
     assert(document.getElementById('sbterm-settings-drawer'));
+    assert(document.getElementById('sbterm-banner'));
     assert(document.getElementById('sbterm-statusline'));
 
     const command = parser.commands.sbterm;
+    const homeCommand = parser.commands.home;
     assert(command);
+    assert(homeCommand);
     const completions = command.unnamedArgumentList[0].enumList;
     assert(completions.includes('ui full'));
     assert(completions.includes('palette phosphor-green'));
@@ -264,6 +290,30 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(prevented);
     assert(stopped);
 
+    sendInput.value = '/home';
+    document.dispatch('click', {
+        target: { closest: selector => selector === '#send_but' },
+        preventDefault() {},
+        stopImmediatePropagation() {},
+    });
+    await Promise.resolve();
+    assert.deepEqual(executedCommands, ['/sbterm ui full', '/home']);
+
+    assert.equal(await homeCommand.callback(), 'home');
+    assert(document.body.classList.contains('sbterm-home-visible'));
+    assert.equal(homeClicks, 1);
+    await eventSource.emit('CHAT_CHANGED');
+    assert(!document.body.classList.contains('sbterm-home-visible'));
+
+    document.dispatch('click', {
+        target: { closest: selector => selector === '#sb-home-toggle' },
+        preventDefault() {},
+        stopImmediatePropagation() {},
+    });
+    await Promise.resolve();
+    assert(document.body.classList.contains('sbterm-home-visible'));
+    assert.equal(homeClicks, 2);
+
     const listenerCount = eventSource.totalListeners();
     extension.activate();
     await eventSource.emit('APP_READY');
@@ -275,6 +325,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     await command.callback({}, 'ui full');
     assert.equal(settings.minimal, false);
     assert(!document.body.classList.contains('sbterm-minimal'));
+    assert(!document.body.classList.contains('sbterm-home-visible'));
     await command.callback({}, 'palette terminal-amber');
     assert.equal(settings.palette, 'terminal-amber');
     const savesBeforeInvalid = saves;
@@ -286,31 +337,42 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.deepEqual(shellCalls.at(-1), ['right', 'settings']);
     await command.callback({}, 'off');
     assert(!document.body.classList.contains('sbterm'));
+    assert.equal(document.getElementById('sbterm-banner').hidden, true);
     assert.equal(parser.commands.sbterm, command);
     assert(document.getElementById('sbterm-settings-drawer'));
     await command.callback({}, 'on');
     assert(document.body.classList.contains('sbterm'));
+    assert.equal(document.getElementById('sbterm-banner').hidden, false);
 
     const foreignCommand = { name: 'sbterm' };
+    const foreignHomeCommand = { name: 'home' };
     parser.commands.sbterm = foreignCommand;
+    parser.commands.home = foreignHomeCommand;
     const enabledBeforeDisable = settings.enabled;
     extension.disable();
     assert.equal(parser.commands.sbterm, foreignCommand);
+    assert.equal(parser.commands.home, foreignHomeCommand);
     assert.equal(await command.callback({}, 'off'), 'Terminal UI is disabled.');
+    assert.equal(await homeCommand.callback(), 'Terminal UI is disabled.');
     assert.equal(settings.enabled, enabledBeforeDisable);
     assert(!document.body.classList.contains('sbterm'));
     assert(!document.body.dataset.sbtermPalette);
     assert(!document.getElementById('sbterm-settings-drawer'));
+    assert(!document.getElementById('sbterm-banner'));
     assert(!document.getElementById('sbterm-statusline'));
     assert.equal(document.listenerCount('submit'), 0);
     assert.equal(document.listenerCount('keydown'), 0);
     assert.equal(document.listenerCount('click'), 0);
+    assert.equal(document.listenerCount('touchend'), 0);
     assert.equal(eventSource.totalListeners(), 0);
 
     delete parser.commands.sbterm;
+    delete parser.commands.home;
     extension.enable();
     assert(parser.commands.sbterm);
+    assert(parser.commands.home);
     assert.notEqual(parser.commands.sbterm, command);
     extension.disable();
     assert(!parser.commands.sbterm);
+    assert(!parser.commands.home);
 });

@@ -398,6 +398,16 @@ body.sbterm #sbterm-statusline[data-state='disconnected'] {
     color: var(--sbterm-err);
 }
 
+body.sbterm #sbterm-banner,
+body.sbterm .sbterm-banner-copy {
+    min-inline-size: 0;
+    inline-size: 100%;
+}
+
+body.sbterm:not(.sbterm-minimal) :is(.sbterm-mascot, .sbterm-banner-title) {
+    display: none;
+}
+
 body.sbterm .sb-proxy-button,
 body.sbterm .sb-bottom-chat-btn,
 body.sbterm .sb-shell-close,
@@ -989,7 +999,432 @@ body.sbterm #toast-container .toast-close-button {
     color: var(--sbterm-fg) !important;
 }
 
-/* 11. Desktop terminal density */
+/* 11. Strict terminal density */
+body.sbterm.sbterm-minimal {
+    --sbterm-prose-width: 72ch;
+}
+
+body.sbterm.sbterm-minimal #top-bar {
+    background-color: var(--sbterm-bg) !important;
+    border-block-end: 0;
+}
+
+body.sbterm.sbterm-minimal #top-bar #sb-topbar-inner {
+    min-block-size: 0;
+}
+
+body.sbterm.sbterm-minimal .sb-topbar-brand {
+    align-items: flex-start;
+}
+
+body.sbterm.sbterm-minimal #sbterm-banner {
+    min-inline-size: 0;
+    inline-size: min(100%, 86ch);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 2ch;
+    margin-inline: auto;
+    padding: 10px clamp(10px, 2.5vw, 28px) 8px;
+}
+
+body.sbterm.sbterm-minimal .sbterm-mascot {
+    margin: 0;
+    color: var(--sbterm-accent2);
+    font: 700 10px/0.92 var(--monoFontFamily);
+    letter-spacing: -0.06em;
+    text-shadow: 0 0 7px var(--sbterm-glow);
+    white-space: pre;
+}
+
+body.sbterm.sbterm-minimal .sbterm-banner-copy {
+    min-inline-size: 0;
+}
+
+body.sbterm.sbterm-minimal .sbterm-banner-copy::after {
+    content: '';
+    inline-size: min(100%, var(--sbterm-prose-width));
+    display: block;
+    margin-block-start: 7px;
+    border-block-end: 1px solid color-mix(in oklch, var(--sbterm-border) 68%, transparent);
+}
+
+body.sbterm.sbterm-minimal .sbterm-banner-title {
+    display: block;
+    color: var(--sbterm-accent);
+    font-size: 0.78rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+}
+
+body.sbterm.sbterm-minimal #sbterm-statusline {
+    inline-size: 100%;
+    padding: 3px 0 0;
+    color: var(--sbterm-fg-dim);
+    font-size: 0.7rem;
+    font-weight: 450;
+    letter-spacing: 0;
+    line-height: 1.35;
+}
+
+body.sbterm.sbterm-minimal #sheld {
+    border: 0;
+    background-color: var(--sbterm-bg) !important;
+}
+
+body.sbterm.sbterm-minimal #chat {
+    padding-block: 10px 18px;
+}
+
+body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #chat .welcomePanel {
+    display: none !important;
+}
+
+body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld {
+    position: absolute !important;
+    inset-block-start: 46% !important;
+    inset-inline-start: 50% !important;
+    inline-size: min(calc(100% - 2rem), var(--sbterm-prose-width)) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    grid-template-areas:
+        'mascot prompt'
+        'mascot guide' !important;
+    column-gap: 1.25rem;
+    align-items: start;
+    transform: translate(-50%, -50%) !important;
+}
+
+body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #send_form {
+    grid-area: prompt;
+}
+
+body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::before {
+    content: '▄█▄     ▄█▄\A███▄   ▄███\A███████████\A██  ▀ ▀  ██\A██   ▄   ██\A ▀██▄▄▄██▀ ';
+    grid-area: mascot;
+    align-self: start;
+    margin-block-start: 0.1rem;
+    color: var(--sbterm-accent2);
+    font: 700 10px/0.92 var(--monoFontFamily);
+    letter-spacing: -0.06em;
+    text-shadow: 0 0 7px var(--sbterm-glow);
+    white-space: pre;
+}
+
+body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::after {
+    content: 'Type / to browse all commands.\A\A/home                 Open the homepage\A/newchat              Start a new chat\A/chat-manager         Manage saved chats\A/sbterm characters    Open character management\A/sbterm groups        Open group chats\A/sbterm               Configure Terminal UI';
+    grid-area: guide;
+    justify-self: start;
+    margin-block-start: 1.25rem;
+    color: var(--sbterm-fg-dim);
+    font-size: 0.72rem;
+    font-weight: 450;
+    line-height: 1.55;
+    white-space: pre;
+}
+
+body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #send_textarea {
+    min-block-size: 2.25rem !important;
+    max-block-size: min(40dvh, 18rem) !important;
+    padding: 0.25rem 0 !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes {
+    margin: 0 !important;
+    padding: 5px clamp(10px, 2.5vw, 28px) 18px !important;
+    border: 0 !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes:is(:hover, :focus-within) {
+    background-color: transparent !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'],
+body.sbterm.sbterm-minimal #chat .mes[is_user='true']:is(:hover, :focus-within) {
+    margin-block-end: 18px !important;
+    padding-block: 9px !important;
+    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg)) !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes_block {
+    max-inline-size: var(--sbterm-prose-width) !important;
+    margin-inline: auto;
+}
+
+body.sbterm.sbterm-minimal #chat .ch_name {
+    min-block-size: 0;
+    gap: 0.6ch;
+    margin-block-end: 3px;
+    color: var(--sbterm-fg-dim);
+    font-size: 0.72rem;
+    font-weight: 450;
+}
+
+body.sbterm.sbterm-minimal #chat .ch_name::before {
+    content: '@ ' / '';
+    color: var(--sbterm-fg-dim);
+    font-weight: 450;
+}
+
+body.sbterm.sbterm-minimal #chat .ch_name .name_text {
+    color: var(--sbterm-fg-dim);
+    font-weight: 450;
+}
+
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block {
+    display: grid !important;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 0.75ch;
+}
+
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name {
+    margin: 0;
+    font-size: inherit;
+}
+
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name::before {
+    content: '> ' / '';
+    color: var(--sbterm-accent);
+    font-weight: 800;
+}
+
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name .name_text,
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name :is(.timestamp, .mesIDDisplay, .mes_timer, .tokenCounterDisplay) {
+    display: none !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes[is_system='true'] .ch_name::before {
+    content: '# ' / '';
+}
+
+body.sbterm.sbterm-minimal #chat .mes_text {
+    color: var(--sbterm-fg) !important;
+    font-size: 0.98rem;
+    line-height: 1.62;
+}
+
+body.sbterm.sbterm-minimal #chat .mes_text :is(em, strong) {
+    color: inherit !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes_text p {
+    margin-block: 0 0.72em;
+}
+
+body.sbterm.sbterm-minimal #chat .mes_text p:last-child {
+    margin-block-end: 0;
+}
+
+body.sbterm.sbterm-minimal #form_sheld,
+body.sbterm.sbterm-minimal #send_form,
+body.sbterm.sbterm-minimal #nonQRFormItems {
+    border: 0 !important;
+}
+
+body.sbterm.sbterm-minimal #form_sheld {
+    border-block-start: 0 !important;
+}
+
+body.sbterm.sbterm-minimal #send_form {
+    padding: 0 !important;
+    overflow: visible;
+}
+
+body.sbterm.sbterm-minimal #nonQRFormItems {
+    grid-template-columns: max-content minmax(0, 1fr) max-content !important;
+    grid-template-areas: 'prompt input action' !important;
+    gap: 0 0.75ch !important;
+    min-block-size: 0 !important;
+    padding: 0 !important;
+}
+
+body.sbterm.sbterm-minimal #nonQRFormItems::before {
+    content: '> ' / '';
+    grid-area: prompt;
+    align-self: start;
+    padding: 0.35rem 0 0 !important;
+}
+
+body.sbterm.sbterm-minimal :is(#leftSendForm, #gg-action-button-container),
+body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
+body.sbterm.sbterm-minimal .stih--standalone {
+    display: none !important;
+}
+
+body.sbterm.sbterm-minimal #send_textarea {
+    border: 0 !important;
+    border-radius: 0 !important;
+    line-height: 1.5;
+}
+
+body.sbterm.sbterm-minimal #send_textarea::placeholder {
+    text-align: start !important;
+}
+
+body.sbterm.sbterm-minimal #send_form:focus-within {
+    outline: 0 !important;
+}
+
+body.sbterm.sbterm-minimal #send_textarea:focus-visible {
+    outline: 0 !important;
+    box-shadow: inset 0 -1px color-mix(in oklch, var(--sbterm-accent) 72%, transparent) !important;
+}
+
+body.sbterm.sbterm-minimal #sb-bottom-chat-bar {
+    display: none !important;
+}
+
+body.sbterm.sbterm-minimal .sb-conversation-message {
+    margin: 0 !important;
+    padding: 5px clamp(10px, 2.5vw, 28px) 18px;
+    border-block-end: 0;
+}
+
+body.sbterm.sbterm-minimal .sb-conversation-message[data-role='user'] {
+    margin-block-end: 18px !important;
+    padding-block: 9px;
+    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg)) !important;
+}
+
+body.sbterm.sbterm-minimal .sb-conversation-message[data-role='user'] .sb-conversation-message-bubble::before {
+    content: '> ' / '';
+    float: inline-start;
+    margin-inline-end: 0.75ch;
+    color: var(--sbterm-accent);
+    font-weight: 800;
+}
+
+body.sbterm.sbterm-minimal .sb-conversation-message-bubble {
+    max-inline-size: var(--sbterm-prose-width) !important;
+    margin-inline: auto;
+    line-height: 1.62;
+}
+
+body.sbterm.sbterm-minimal .sb-conversation-message-name,
+body.sbterm.sbterm-minimal .sb-conversation-message-meta {
+    color: var(--sbterm-fg-dim) !important;
+    font-size: 0.72rem;
+    font-weight: 450;
+}
+
+body.sbterm.sbterm-minimal :is(.sb-conversation-composer, #sb_conversation_input) {
+    background-color: var(--sbterm-bg) !important;
+    border-color: transparent !important;
+}
+
+body.sbterm.sbterm-minimal .autoComplete-wrap,
+body.sbterm.sbterm-minimal .autoComplete-detailsWrap {
+    border-color: transparent !important;
+}
+
+body.sbterm.sbterm-minimal .autoComplete > .item.selected,
+body.sbterm.sbterm-minimal .autoComplete > .item:hover {
+    background-color: transparent !important;
+    color: var(--sbterm-accent) !important;
+    font-weight: 700;
+}
+
+body.sbterm.sbterm-minimal .welcomeGuidePanel,
+body.sbterm.sbterm-minimal .welcomeRecentShell {
+    border-color: transparent !important;
+}
+
+body.sbterm.sbterm-minimal #chat .mes:has(.welcomePanel) {
+    padding: 0 clamp(10px, 2.5vw, 28px) 18px !important;
+}
+
+body.sbterm.sbterm-minimal .welcomePanel {
+    max-inline-size: var(--sbterm-prose-width);
+    gap: 14px;
+    margin-inline: auto;
+    padding: 10px 0 !important;
+    border: 0 !important;
+}
+
+body.sbterm.sbterm-minimal .welcomePanel::after {
+    display: none;
+}
+
+body.sbterm.sbterm-minimal :is(.welcomeRecentShell, .recentChat, .noRecentChat)::before {
+    display: none !important;
+}
+
+body.sbterm.sbterm-minimal :is(.welcomeActionCard, .welcomeGuideCard, .welcomeShortcut, .welcomePanelModeToggle, .recentChat, .noRecentChat) {
+    background-color: transparent !important;
+    border: 0 !important;
+}
+
+body.sbterm.sbterm-minimal :is(.welcomeActionCard, .welcomeGuideCard, .welcomeShortcut, .welcomePanelModeToggle, .recentChat):is(:hover, :focus-within) {
+    background-color: var(--sbterm-bg-alt) !important;
+}
+
+body.sbterm.sbterm-minimal .welcomeRecentShell {
+    padding-inline: 0 !important;
+    background-color: transparent !important;
+}
+
+body.sbterm.sbterm-minimal .welcomeHeaderLogo,
+body.sbterm.sbterm-minimal .welcomeShortcut > i {
+    display: none !important;
+}
+
+body.sbterm.sbterm-minimal .welcomeShortcuts {
+    justify-content: flex-start;
+    gap: 2px 1ch;
+}
+
+body.sbterm.sbterm-minimal .welcomeShortcut {
+    flex: 0 1 auto;
+    min-block-size: 32px;
+    max-inline-size: none;
+    justify-content: flex-start;
+    padding-inline: 0.75ch;
+}
+
+body.sbterm.sbterm-minimal .welcomeShortcut::before {
+    content: '> ' / '';
+    color: var(--sbterm-accent);
+    font-weight: 800;
+}
+
+body.sbterm.sbterm-minimal .welcomeRecentTabs {
+    padding: 0;
+    background-color: transparent;
+    border: 0;
+}
+
+body.sbterm.sbterm-minimal .welcomeRecentTab {
+    min-block-size: 32px;
+    padding: 4px 8px;
+    border-radius: 0;
+}
+
+body.sbterm.sbterm-minimal .welcomeRecentTab.active {
+    background-color: transparent;
+    color: var(--sbterm-accent);
+    box-shadow: none;
+    font-weight: 700;
+}
+
+body.sbterm.sbterm-minimal .welcomeRecent .recentChatList {
+    gap: 0;
+}
+
+body.sbterm.sbterm-minimal .welcomeRecent .recentChatList .recentChat {
+    gap: 0;
+    padding: 10px 1ch;
+    transform: none;
+    box-shadow: none;
+}
+
+body.sbterm.sbterm-minimal .recentChat .avatar {
+    display: none !important;
+}
+
+/* 12. Desktop terminal density */
 @media (min-width: 1001px) and (hover: hover) and (pointer: fine) {
     body.sbterm.sbterm-minimal #top-bar #sb-topbar-inner {
         position: relative;
@@ -1021,8 +1456,8 @@ body.sbterm #toast-container .toast-close-button {
         pointer-events: auto;
     }
 
-    body.sbterm.sbterm-minimal #top-bar:is(:hover, :focus-within) #sbterm-statusline {
-        opacity: 0.16;
+    body.sbterm.sbterm-minimal #top-bar:is(:hover, :focus-within) #sbterm-banner {
+        opacity: 0.12;
     }
 
     body.sbterm.sbterm-minimal #chat .mes .mes_buttons,
@@ -1032,7 +1467,8 @@ body.sbterm #toast-container .toast-close-button {
     body.sbterm.sbterm-minimal #chat .mes .mesIDDisplay,
     body.sbterm.sbterm-minimal #chat .mes .mes_timer,
     body.sbterm.sbterm-minimal #chat .mes .tokenCounterDisplay,
-    body.sbterm.sbterm-minimal .sb-conversation-message-actions {
+    body.sbterm.sbterm-minimal .sb-conversation-message-actions,
+    body.sbterm.sbterm-minimal .welcomeRecent .recentChat .chatActions {
         opacity: 0 !important;
         pointer-events: none !important;
         transition: opacity 120ms ease-out;
@@ -1040,57 +1476,28 @@ body.sbterm #toast-container .toast-close-button {
 
     body.sbterm.sbterm-minimal #chat .mes:is(:hover, :focus-within) :is(.mes_buttons, .swipe_left, .swipe_right, .swipes-counter, .mesIDDisplay, .mes_timer, .tokenCounterDisplay),
     body.sbterm.sbterm-minimal #chat .mes .extraMesButtons.visible,
-    body.sbterm.sbterm-minimal .sb-conversation-message-bubble:is(:hover, :focus-within) .sb-conversation-message-actions {
+    body.sbterm.sbterm-minimal .sb-conversation-message-bubble:is(:hover, :focus-within) .sb-conversation-message-actions,
+    body.sbterm.sbterm-minimal .welcomeRecent .recentChat:is(:hover, :focus-within) .chatActions {
         opacity: 1 !important;
         pointer-events: auto !important;
     }
 
-    body.sbterm.sbterm-minimal #leftSendForm > :not(#options_button),
-    body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
-    body.sbterm.sbterm-minimal #gg-action-button-container > .stih--buttons,
-    body.sbterm.sbterm-minimal #gg-action-button-container .gg-action-button:not(#gg_simple_send_button) {
-        inline-size: 0 !important;
-        min-inline-size: 0 !important;
-        max-inline-size: 0 !important;
-        margin-inline: 0 !important;
-        padding-inline: 0 !important;
-        overflow: hidden;
-        border-inline-width: 0 !important;
+    body.sbterm.sbterm-minimal #sb_conversation_pals_toggle,
+    body.sbterm.sbterm-minimal .sb-conversation-header-actions,
+    body.sbterm.sbterm-minimal .sb-conversation-composer-actions {
         opacity: 0;
         pointer-events: none;
+        transition: opacity 120ms ease-out;
     }
 
-    body.sbterm.sbterm-minimal #send_form:hover #leftSendForm > :not(#options_button),
-    body.sbterm.sbterm-minimal #send_form:hover #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
-    body.sbterm.sbterm-minimal #gg-action-button-container:hover > .stih--buttons,
-    body.sbterm.sbterm-minimal #gg-action-button-container:hover .gg-action-button:not(#gg_simple_send_button),
-    body.sbterm.sbterm-minimal #leftSendForm > :not(#options_button):focus-within,
-    body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop):focus-within,
-    body.sbterm.sbterm-minimal #gg-action-button-container > .stih--buttons:focus-within,
-    body.sbterm.sbterm-minimal #gg-action-button-container .gg-action-button:not(#gg_simple_send_button):focus-within {
-        inline-size: auto !important;
-        min-inline-size: revert !important;
-        max-inline-size: none !important;
-        margin-inline: revert !important;
-        padding-inline: revert !important;
-        overflow: visible;
-        border-inline-width: revert !important;
+    body.sbterm.sbterm-minimal #sb_conversation_header:is(:hover, :focus-within) :is(#sb_conversation_pals_toggle, .sb-conversation-header-actions),
+    body.sbterm.sbterm-minimal .sb-conversation-composer:is(:hover, :focus-within) .sb-conversation-composer-actions {
         opacity: 1;
         pointer-events: auto;
     }
 
-    body.sbterm.sbterm-minimal .sb-bottom-chat-management-actions,
-    body.sbterm.sbterm-minimal .sb-bottom-chat-search-field {
-        max-inline-size: 0;
-        overflow: hidden;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    body.sbterm.sbterm-minimal #sb-bottom-chat-bar:is(:hover, :focus-within) :is(.sb-bottom-chat-management-actions, .sb-bottom-chat-search-field) {
-        max-inline-size: none;
-        opacity: 1;
-        pointer-events: auto;
+    body.sbterm.sbterm-minimal #send_but {
+        display: none !important;
     }
 
     body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] {
@@ -1121,7 +1528,7 @@ body.sbterm #toast-container .toast-close-button {
     }
 }
 
-/* 12. Touch and narrow layouts */
+/* 13. Touch and narrow layouts */
 @media (pointer: coarse), (hover: none), (max-width: 1000px) {
     body.sbterm #top-bar #sb-topbar-inner {
         grid-template-columns: auto minmax(5rem, 1fr) auto !important;
@@ -1157,14 +1564,39 @@ body.sbterm #toast-container .toast-close-button {
     }
 }
 
-@media (max-width: 480px) {
-    body.sbterm #sbterm-statusline {
-        font-size: 9px;
-        letter-spacing: -0.02em;
+@media (max-width: 700px) {
+    body.sbterm.sbterm-minimal #sbterm-banner {
+        grid-template-columns: minmax(0, 1fr);
+        padding-block: 7px;
+    }
+
+    body.sbterm.sbterm-minimal .sbterm-mascot {
+        display: none;
+    }
+
+    body.sbterm.sbterm-minimal #sbterm-statusline {
+        padding-inline: 0;
+    }
+
+    body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-areas:
+            'prompt'
+            'guide' !important;
+    }
+
+    body.sbterm.sbterm-minimal:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::before {
+        display: none;
     }
 }
 
-/* 13. Optional CRT overlay */
+@media (max-width: 480px) {
+    body.sbterm #sbterm-statusline {
+        font-size: 10px;
+    }
+}
+
+/* 14. Optional CRT overlay */
 body.sbterm.sbterm-crt::after {
     content: '';
     position: fixed;
@@ -1191,6 +1623,15 @@ body.sbterm.sbterm-crt :is(#chat .mes_text, #sbterm-statusline) {
 @media (prefers-reduced-motion: reduce) {
     body.sbterm.sbterm-crt::after {
         animation: none;
+    }
+
+    body.sbterm *,
+    body.sbterm *::before,
+    body.sbterm *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }
 
