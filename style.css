@@ -1,5 +1,5 @@
 /*
- * Terminal UI — full-app CLI skin for SillyBunny.
+ * Terminal UI: command-first interface for SillyBunny.
  * Every rule is gated under body.sbterm (added by index.js), so this sheet is
  * inert until the extension is enabled and disable is a single class removal.
  *
@@ -8,7 +8,7 @@
  * Palette selection: body[data-sbterm-palette="<slug>"].
  */
 
-/* ── 1. Tokens + palettes ─────────────────────────────────────────────── */
+/* 1. Tokens and palettes */
 /* Defaults double as the phosphor-green palette so a missing/unknown
    data attribute still renders. */
 body.sbterm {
@@ -44,7 +44,7 @@ body.sbterm[data-sbterm-palette='gameboy-dmg'] {
     --sbterm-bg: #8bac0f;
     --sbterm-bg-alt: #9bbc0f;
     --sbterm-fg: #0f380f;
-    --sbterm-fg-dim: #1d4d1d;
+    --sbterm-fg-dim: #173f17;
     --sbterm-accent: #0f380f;
     --sbterm-accent2: #306230;
     --sbterm-ok: #0f380f;
@@ -55,9 +55,9 @@ body.sbterm[data-sbterm-palette='gameboy-dmg'] {
 }
 
 body.sbterm[data-sbterm-palette='teletext'] {
-    --sbterm-bg: #000000;
-    --sbterm-bg-alt: #111111;
-    --sbterm-fg: #ffffff;
+    --sbterm-bg: #050509;
+    --sbterm-bg-alt: #12121a;
+    --sbterm-fg: #f7f7ff;
     --sbterm-fg-dim: #8888aa;
     --sbterm-accent: #ffff00;
     --sbterm-accent2: #00ffff;
@@ -71,8 +71,8 @@ body.sbterm[data-sbterm-palette='teletext'] {
 body.sbterm[data-sbterm-palette='chrome-98'] {
     --sbterm-bg: #c0c0c0;
     --sbterm-bg-alt: #dfdfdf;
-    --sbterm-fg: #000000;
-    --sbterm-fg-dim: #5a5a5a;
+    --sbterm-fg: #090914;
+    --sbterm-fg-dim: #444451;
     --sbterm-accent: #000080;
     --sbterm-accent2: #008080;
     --sbterm-ok: #008000;
@@ -156,7 +156,7 @@ body.sbterm[data-sbterm-palette='solarized-dark'] {
     --sbterm-bg: #002b36;
     --sbterm-bg-alt: #073642;
     --sbterm-fg: #93a1a1;
-    --sbterm-fg-dim: #7a8e94;
+    --sbterm-fg-dim: #83979d;
     --sbterm-accent: #268bd2;
     --sbterm-accent2: #2aa198;
     --sbterm-ok: #859900;
@@ -196,7 +196,7 @@ body.sbterm[data-sbterm-palette='inherit'] {
     --sbterm-glow: color-mix(in srgb, var(--sbterm-accent) 15%, transparent);
 }
 
-/* ── 2. Host var remap (shipped palettes only) ────────────────────────── */
+/* 2. Host variable remap */
 body.sbterm:not([data-sbterm-palette='inherit']) {
     --SmartThemeBodyColor: var(--sbterm-fg);
     --SmartThemeEmColor: var(--sbterm-accent2);
@@ -204,9 +204,9 @@ body.sbterm:not([data-sbterm-palette='inherit']) {
     --SmartThemeQuoteColor: var(--sbterm-accent);
     --SmartThemeBlurTintColor: var(--sbterm-bg-alt);
     --SmartThemeChatTintColor: var(--sbterm-bg);
-    --SmartThemeUserMesBlurTintColor: transparent;
-    --SmartThemeBotMesBlurTintColor: transparent;
-    --SmartThemeShadowColor: transparent;
+    --SmartThemeUserMesBlurTintColor: var(--sbterm-bg);
+    --SmartThemeBotMesBlurTintColor: var(--sbterm-bg);
+    --SmartThemeShadowColor: color-mix(in oklch, var(--sbterm-bg) 72%, var(--sbterm-fg));
     --SmartThemeBorderColor: var(--sbterm-border);
     --color-primary: var(--sbterm-accent);
     --color-accent: var(--sbterm-accent);
@@ -225,26 +225,34 @@ body.sbterm:not([data-sbterm-palette='inherit']) {
     --color-warning: var(--sbterm-warn);
     --color-user-message-bg: transparent;
     --color-bot-message-bg: transparent;
+    --sb-color-success: var(--sbterm-ok);
+    --sb-color-warning: var(--sbterm-warn);
+    --sb-color-danger: var(--sbterm-err);
+    --sb-color-error: var(--sbterm-err);
+    --sb-focus-ring: var(--sbterm-accent);
+    --sb-input-bg: var(--sbterm-bg-alt);
+    --sb-input-border: var(--sbterm-border);
+    --sb-shell-border: var(--sbterm-border);
+    --active: var(--sbterm-accent);
+    --warning: var(--sbterm-warn);
+    --fullred: var(--sbterm-err);
+    --golden: var(--sbterm-warn);
 }
 
-/* ── 3. Structural resets (all palettes, including inherit) ───────────── */
+/* 3. Foundation */
 body.sbterm {
     --sb-radius-sm: 0;
     --sb-radius-md: 0;
     --sb-radius-lg: 0;
     --sb-radius-xl: 0;
     --sb-radius-button: 0;
-    --sb-transition: 0.01s;
-    --sb-transition-fast: 0.01s;
-    --sb-transition-slow: 0.01s;
     --mainFontFamily: var(--monoFontFamily);
     --mainFont: var(--monoFontFamily);
     font-family: var(--monoFontFamily);
-    background: var(--sbterm-bg) !important;
+    background-color: var(--sbterm-bg) !important;
     color: var(--sbterm-fg);
 }
 
-/* :not([class*='fa-']) keeps Font Awesome icon buttons rendering as icons */
 body.sbterm input,
 body.sbterm textarea,
 body.sbterm select,
@@ -252,227 +260,67 @@ body.sbterm button:not([class*='fa-']) {
     font-family: var(--monoFontFamily);
 }
 
-body.sbterm * {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    text-shadow: none;
-}
-
-body.sbterm #bg1 {
-    display: none;
-}
-
-/* These host containers paint with gradients; shorthand flattens them */
-body.sbterm #top-bar {
-    background: var(--sbterm-bg-alt) !important;
-}
-
-body.sbterm #nonQRFormItems {
-    background: transparent !important;
-}
-
-/* Form controls follow the tokens (light palettes otherwise keep dark fields) */
-body.sbterm input:not([type='checkbox']):not([type='radio']):not(#send_textarea),
+body.sbterm input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='hidden']):not([type='button']):not([type='submit']):not([type='reset']):not([type='image']),
+body.sbterm textarea:not(#send_textarea),
 body.sbterm select,
 body.sbterm .text_pole {
-    background: var(--sbterm-bg-alt) !important;
+    background-color: var(--sbterm-bg-alt) !important;
     color: var(--sbterm-fg) !important;
     border-color: var(--sbterm-border) !important;
 }
 
-/* box-shadow-based focus rings are nuked above; replace with outlines */
+body.sbterm ::placeholder {
+    color: var(--sbterm-fg-dim) !important;
+    opacity: 1;
+}
+
 body.sbterm :focus-visible {
-    outline: 1px solid var(--sbterm-accent) !important;
+    outline: 2px solid var(--sbterm-accent) !important;
+    outline-offset: 2px;
+}
+
+body.sbterm .select2-container--focus .select2-selection,
+body.sbterm .select2-container:focus-within .select2-selection,
+body.sbterm .sb-universal-search-field:focus-within,
+body.sbterm #send_form:focus-within {
+    outline: 2px solid var(--sbterm-accent) !important;
     outline-offset: 1px;
 }
 
-/* ── 4. Statusline (top bar) ──────────────────────────────────────────── */
-body.sbterm #top-settings-holder {
-    background: var(--sbterm-bg-alt) !important;
-    border-bottom: 1px solid var(--sbterm-border);
+body.sbterm #bg1 {
+    opacity: 0;
+    pointer-events: none;
 }
 
-body.sbterm #top-settings-holder::before {
-    content: 'user@sillybunny:~$';
-    align-self: center;
-    color: var(--sbterm-fg-dim);
-    font-family: var(--monoFontFamily);
-    font-size: calc(var(--mainFontSize, 15px) * 0.8);
-    padding: 0 6px;
-    white-space: nowrap;
+body.sbterm #top-bar,
+body.sbterm #sheld,
+body.sbterm .sb-shell-root,
+body.sbterm .drawer-content,
+body.sbterm dialog.popup,
+body.sbterm #dialogue_popup,
+body.sbterm #select_chat_popup,
+body.sbterm .welcomeGuidePanel,
+body.sbterm .welcomeRecentShell,
+body.sbterm .welcomeActionCard,
+body.sbterm .welcomeGuideCard,
+body.sbterm .recentChat,
+body.sbterm .autoComplete-wrap,
+body.sbterm .select2-dropdown {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
 }
 
-body.sbterm .drawer-icon {
-    color: var(--sbterm-fg-dim) !important;
-}
-
-body.sbterm .drawer-icon:hover,
-body.sbterm .drawer-icon.openIcon {
-    color: var(--sbterm-accent) !important;
-}
-
-/* ── 5. Drawers + panels ──────────────────────────────────────────────── */
-body.sbterm .drawer-content {
-    background: var(--sbterm-bg) !important;
-    border: 1px solid var(--sbterm-border) !important;
-    color: var(--sbterm-fg);
-}
-
-body.sbterm .inline-drawer {
-    border: 1px solid var(--sbterm-border);
-}
-
-body.sbterm .inline-drawer-header {
-    background: var(--sbterm-bg-alt) !important;
-    color: var(--sbterm-fg) !important;
-}
-
-/* ── 6. Chat log ──────────────────────────────────────────────────────── */
-body.sbterm #sheld {
-    background: var(--sbterm-bg) !important;
-    border: 1px solid var(--sbterm-border);
-}
-
-body.sbterm #chat {
-    background: transparent !important;
-}
-
-/* One flat reset neutralizes all chat_styles body classes (bubbles etc.) */
-body.sbterm #chat .mes {
-    background: transparent !important;
-    border: none !important;
-    margin-inline: 0 !important;
-    max-width: 100% !important;
-}
-
-body.sbterm .mesAvatarWrapper .avatar img {
-    border: 1px solid var(--sbterm-border);
-}
-
-body.sbterm .mesIDDisplay,
-body.sbterm .mes_timer,
-body.sbterm .tokenCounterDisplay,
-body.sbterm .mes .timestamp {
-    color: var(--sbterm-fg-dim) !important;
-}
-
-/* Prompt-prefix dressing — pure CSS off the .mes attributes, zero JS */
-body.sbterm .mes .ch_name .name_text {
-    color: var(--sbterm-accent);
-    font-weight: 700;
-}
-
-body.sbterm .mes .ch_name .name_text::before {
-    content: '\250C\2500['; /* ┌─[ */
-    color: var(--sbterm-fg-dim);
-    font-weight: 400;
-}
-
-body.sbterm .mes .ch_name .name_text::after {
-    content: ']';
-    color: var(--sbterm-fg-dim);
-    font-weight: 400;
-}
-
-body.sbterm .mes[is_user='true'] .ch_name .name_text::after {
-    content: '@sillybunny]';
-}
-
-body.sbterm .mes .mes_text::before {
-    content: '\2514\2500> '; /* └─> */
-    float: left;
-    margin-right: 1ch;
-    color: var(--sbterm-fg-dim);
-    white-space: pre;
-}
-
-body.sbterm .mes[is_user='true'] .mes_text::before {
-    content: '\2514\2500$ '; /* └─$ */
-    color: var(--sbterm-accent);
-}
-
-/* System/narrator lines: no frame, dim, comment-style prefix */
-body.sbterm .mes[is_system='true'] .ch_name .name_text::before,
-body.sbterm .mes[is_system='true'] .ch_name .name_text::after {
-    content: '';
-}
-
-body.sbterm .mes[is_system='true'] .mes_text::before {
-    content: '# ';
-    color: var(--sbterm-fg-dim);
-}
-
-body.sbterm .mes[is_system='true'] .mes_text {
-    color: var(--sbterm-fg-dim);
-}
-
-body.sbterm .mes_reasoning_details {
-    border: 1px dashed var(--sbterm-border);
-}
-
-body.sbterm .welcomePanel {
-    background: var(--sbterm-bg-alt) !important;
-    border: 1px solid var(--sbterm-border) !important;
-    color: var(--sbterm-fg);
-}
-
-/* ── 7. Input form ────────────────────────────────────────────────────── */
-body.sbterm #form_sheld,
-body.sbterm #send_form {
-    background: var(--sbterm-bg) !important;
-    border-top: 1px solid var(--sbterm-border) !important;
-}
-
-body.sbterm #nonQRFormItems::before {
-    content: '\2514\2500$'; /* └─$ */
-    align-self: center;
-    color: var(--sbterm-accent);
-    font-weight: 700;
-    padding-inline: 4px;
-    white-space: nowrap;
-}
-
-body.sbterm #send_textarea {
-    background: transparent !important;
-    border: none !important;
-    color: var(--sbterm-fg) !important;
-    font-family: var(--monoFontFamily);
-    caret-color: var(--sbterm-accent);
-    caret-shape: block; /* Firefox-only; progressive enhancement */
-}
-
-body.sbterm #sb-bottom-chat-bar {
-    background: var(--sbterm-bg-alt) !important;
-    border-top: 1px solid var(--sbterm-border);
-}
-
-body.sbterm .sb-bottom-chat-search-field {
-    background: var(--sbterm-bg-alt) !important;
-}
-
-/* ── 8. Buttons + scrollbars ──────────────────────────────────────────── */
-body.sbterm .menu_button {
-    background: var(--sbterm-bg-alt) !important;
-    border: 1px solid var(--sbterm-border) !important;
-    color: var(--sbterm-fg) !important;
-}
-
-body.sbterm .menu_button:hover {
-    background: var(--sbterm-bg) !important;
-    border-color: var(--sbterm-accent) !important;
-    color: var(--sbterm-accent) !important;
-}
-
-/* [ OK ]-style brackets, popup text buttons only (icon buttons stay clean) */
-body.sbterm .popup-controls .menu_button::before {
-    content: '[ ';
-    color: var(--sbterm-fg-dim);
-}
-
-body.sbterm .popup-controls .menu_button::after {
-    content: ' ]';
-    color: var(--sbterm-fg-dim);
+body.sbterm #sheld::before,
+body.sbterm #top-bar::before,
+body.sbterm .sb-shell-root::before,
+body.sbterm .welcomeActionCard::before,
+body.sbterm .welcomeRecentShell::before,
+body.sbterm .welcomeGuidePanel::before,
+body.sbterm .welcomeGuideCard::before,
+body.sbterm .recentChat::before {
+    background-image: none !important;
 }
 
 body.sbterm * {
@@ -486,25 +334,639 @@ body.sbterm ::-webkit-scrollbar {
 }
 
 body.sbterm ::-webkit-scrollbar-thumb {
-    background: var(--sbterm-border);
+    background-color: var(--sbterm-border);
 }
 
 body.sbterm ::-webkit-scrollbar-track {
-    background: transparent;
+    background-color: transparent;
 }
 
-/* ── 9. Popups + toasts ───────────────────────────────────────────────── */
-body.sbterm dialog.popup {
-    background: var(--sbterm-bg) !important;
-    border: 1px solid var(--sbterm-border) !important;
+/* 4. Top statusline */
+body.sbterm #top-bar {
+    background-color: var(--sbterm-bg-alt) !important;
+    background-image: none !important;
+    border-block-end: 1px solid var(--sbterm-border);
+}
+
+body.sbterm #top-settings-holder {
+    background-color: transparent !important;
+    border: 0 !important;
+}
+
+body.sbterm #top-settings-holder::before {
+    content: none !important;
+}
+
+body.sbterm #top-bar #sb-topbar-inner {
     color: var(--sbterm-fg);
 }
 
-body.sbterm #toast-container > div {
-    background: var(--sbterm-bg-alt) !important;
+body.sbterm #sb-topbar-title {
+    display: none !important;
+}
+
+body.sbterm .sb-topbar-brand {
+    min-inline-size: 0;
+    display: flex !important;
+    align-items: stretch;
+    inline-size: 100%;
+    max-inline-size: none;
+}
+
+body.sbterm #sbterm-statusline {
+    min-inline-size: 0;
+    inline-size: 100%;
+    padding: 6px 10px;
+    overflow: hidden;
+    color: var(--sbterm-fg-dim);
+    font-size: clamp(10px, 0.78rem, 13px);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    text-align: start;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.sbterm #sbterm-statusline[data-state='generating'],
+body.sbterm #sbterm-statusline[data-state='command'] {
+    color: var(--sbterm-accent2);
+}
+
+body.sbterm #sbterm-statusline[data-state='disconnected'] {
+    color: var(--sbterm-err);
+}
+
+body.sbterm .sb-proxy-button,
+body.sbterm .sb-bottom-chat-btn,
+body.sbterm .sb-shell-close,
+body.sbterm .sb-shell-tab,
+body.sbterm .sb-settings-tab-btn,
+body.sbterm .drawer-icon {
+    border-radius: 0 !important;
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm .sb-proxy-button:is(:hover, :focus-visible, [aria-pressed='true'], [aria-current='page']),
+body.sbterm .sb-bottom-chat-btn:is(:hover, :focus-visible, .is-active, [aria-pressed='true']),
+body.sbterm .drawer-icon:is(:hover, .openIcon) {
+    color: var(--sbterm-accent) !important;
+}
+
+body.sbterm #sb-topbar-search-row,
+body.sbterm .sb-universal-search-field,
+body.sbterm .sb-search-results {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+}
+
+/* 5. Transcript */
+body.sbterm #sheld {
+    background-color: var(--sbterm-bg) !important;
+    background-image: none !important;
+    border: 1px solid var(--sbterm-border);
+}
+
+body.sbterm #chat {
+    background-color: transparent !important;
+}
+
+body.sbterm #chat .mes,
+body.sbterm #chat .mes .mes_block,
+body.sbterm #chat .mes .mes_text,
+body.sbterm #chat .mes .mesAvatarWrapper,
+body.sbterm #chat .mes .mes_text p {
+    max-inline-size: 100% !important;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.sbterm #chat .mes {
+    inline-size: 100% !important;
+    margin-inline: 0 !important;
+    padding: 10px clamp(10px, 2.5vw, 28px) !important;
+    border: 0 !important;
+    border-block-end: 1px solid color-mix(in oklch, var(--sbterm-border) 58%, transparent) !important;
+}
+
+body.sbterm #chat .mes:is(:hover, :focus-within) {
+    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 72%, transparent) !important;
+}
+
+body.sbterm #chat .mes::before,
+body.sbterm #chat .mes::after,
+body.sbterm #chat .mes_block::before,
+body.sbterm #chat .mes_block::after,
+body.sbterm #chat .mes_text::before,
+body.sbterm #chat .mes_text::after {
+    content: none !important;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+body.sbterm #chat .mesAvatarWrapper {
+    display: none !important;
+}
+
+body.sbterm #chat .mes_block {
+    inline-size: 100% !important;
+    padding: 0 !important;
+}
+
+body.sbterm #chat .ch_name {
+    min-block-size: 1.4em;
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    margin-block-end: 4px;
+}
+
+body.sbterm #chat .ch_name::before {
+    content: '> ' / '';
+    color: var(--sbterm-accent2);
+    font-weight: 800;
+}
+
+body.sbterm #chat .mes[is_user='true'] .ch_name::before {
+    content: '$ ' / '';
+    color: var(--sbterm-accent);
+}
+
+body.sbterm #chat .mes[is_system='true'] .ch_name::before {
+    content: '# ' / '';
+    color: var(--sbterm-fg-dim);
+}
+
+body.sbterm #chat .ch_name .name_text {
+    color: var(--sbterm-accent);
+    font-weight: 750;
+}
+
+body.sbterm #chat .mes[is_system='true'] .ch_name .name_text,
+body.sbterm #chat .mes[is_system='true'] .mes_text {
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm .mesIDDisplay,
+body.sbterm .mes_timer,
+body.sbterm .tokenCounterDisplay,
+body.sbterm .mes .timestamp,
+body.sbterm .mes .mes_edit_buttons {
+    color: var(--sbterm-fg-dim) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+body.sbterm .mes_reasoning,
+body.sbterm .mes_reasoning_details,
+body.sbterm .mes_file_container,
+body.sbterm .mes_audio_container,
+body.sbterm .mes_media_wrapper {
+    border-radius: 0 !important;
+    border-color: var(--sbterm-border) !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm #chat pre,
+body.sbterm #chat code,
+body.sbterm #chat table {
+    border-radius: 0 !important;
+    border-color: var(--sbterm-border) !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    color: var(--sbterm-fg) !important;
+}
+
+body.sbterm #chat a {
+    color: var(--sbterm-accent2);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.18em;
+}
+
+/* 6. Prompt and chat controls */
+body.sbterm #form_sheld,
+body.sbterm #send_form,
+body.sbterm #nonQRFormItems {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg) !important;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+body.sbterm #form_sheld {
+    border-block-start: 1px solid var(--sbterm-border) !important;
+}
+
+body.sbterm #nonQRFormItems::before {
+    content: '> ' / '';
+    align-self: center;
+    padding-inline: 7px 2px;
+    color: var(--sbterm-accent);
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+body.sbterm #send_textarea {
+    background-color: transparent !important;
+    color: var(--sbterm-fg) !important;
+    border-color: var(--sbterm-border);
+    font-family: var(--monoFontFamily);
+    caret-color: var(--sbterm-accent);
+    caret-shape: block;
+}
+
+body.sbterm #send_form.sb-generating-controls,
+body.sbterm #form_sheld.isExecutingCommandsFromChatInput {
+    border-color: var(--sbterm-accent2) !important;
+}
+
+body.sbterm #sb-bottom-chat-bar,
+body.sbterm .sb-bottom-chat-search-field {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    border-color: var(--sbterm-border) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm .menu_button,
+body.sbterm .menu_button_icon,
+body.sbterm button.sb-conversation-channel-tab,
+body.sbterm button.sb-conversation-tool-button {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    background-image: none !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm .menu_button:is(:hover, :focus-visible),
+body.sbterm .menu_button_icon:is(:hover, :focus-visible),
+body.sbterm button.sb-conversation-channel-tab:is(:hover, :focus-visible, [data-active='true'], [aria-pressed='true']),
+body.sbterm button.sb-conversation-tool-button:is(:hover, :focus-visible) {
+    background-color: var(--sbterm-bg) !important;
+    border-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-accent) !important;
+}
+
+body.sbterm .popup-controls .menu_button:not(.menu_button_icon):not([class*='fa-'])::before {
+    content: '[ ' / '';
+    color: var(--sbterm-fg-dim);
+}
+
+body.sbterm .popup-controls .menu_button:not(.menu_button_icon):not([class*='fa-'])::after {
+    content: ' ]' / '';
+    color: var(--sbterm-fg-dim);
+}
+
+/* 7. Shells, settings, and Home */
+body.sbterm .sb-shell-root,
+body.sbterm .sb-shell-nav,
+body.sbterm .sb-shell-main,
+body.sbterm .sb-shell-header,
+body.sbterm .sb-shell-panel-scroller,
+body.sbterm .drawer-content,
+body.sbterm .inline-drawer,
+body.sbterm .inline-drawer-header,
+body.sbterm .inline-drawer-content,
+body.sbterm .sb-settings-group {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg) !important;
+    background-image: none !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+body.sbterm .sb-shell-nav,
+body.sbterm .sb-shell-header,
+body.sbterm .inline-drawer-header {
+    background-color: var(--sbterm-bg-alt) !important;
+}
+
+body.sbterm .sb-shell-tab,
+body.sbterm .sb-settings-tab-btn {
+    border-radius: 0 !important;
+    border-color: transparent !important;
+    background-color: transparent !important;
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm .sb-shell-tab:is(:hover, :focus-visible, [aria-selected='true']),
+body.sbterm .sb-settings-tab-btn:is(:hover, :focus-visible, [aria-selected='true']) {
+    border-color: var(--sbterm-border) !important;
+    background-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-bg) !important;
+}
+
+body.sbterm .welcomePanel,
+body.sbterm .welcomeGuidePanel,
+body.sbterm .welcomeRecentShell,
+body.sbterm .welcomeActionCard,
+body.sbterm .welcomeGuideCard,
+body.sbterm .welcomeDeckFrame,
+body.sbterm .recentChat,
+body.sbterm .noRecentChat {
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm .welcomeGuidePanel,
+body.sbterm .welcomeRecentShell {
     border: 1px solid var(--sbterm-border) !important;
+}
+
+body.sbterm .welcomeActionCard,
+body.sbterm .welcomeGuideCard,
+body.sbterm .recentChat {
+    border: 0 !important;
+    border-block-end: 1px solid var(--sbterm-border) !important;
+}
+
+body.sbterm .welcomeActionCard:is(:hover, :focus-visible),
+body.sbterm .welcomeGuideCard:is(:hover, :focus-visible),
+body.sbterm .recentChat:is(:hover, :focus-within) {
+    background-color: var(--sbterm-bg-alt) !important;
+}
+
+body.sbterm .welcomeActionCard > i,
+body.sbterm .welcomeGuideCardHeader > i,
+body.sbterm .welcomePanel .noRecentChat > i {
+    display: none !important;
+}
+
+body.sbterm .welcomeDeckTab,
+body.sbterm .welcomeRecentTab {
+    border-radius: 0 !important;
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm .welcomeDeckTab:is(.is-active, :focus-visible),
+body.sbterm .welcomeRecentTab:is(.active, :focus-visible) {
+    background-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-bg) !important;
+}
+
+/* 8. Conversation Mode */
+body.sbterm #sheld[data-sb-conversation-mode='on'] {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg) !important;
+    background-image: none !important;
+    box-shadow: none !important;
+}
+
+body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_header,
+body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail,
+body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_stage,
+body.sbterm .sb-conversation-tools,
+body.sbterm .sb-conversation-composer,
+body.sbterm #sb_conversation_settings_drawer {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg) !important;
+    background-image: none !important;
+    border-color: var(--sbterm-border) !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_header,
+body.sbterm .sb-conversation-tools,
+body.sbterm .sb-conversation-composer {
+    background-color: var(--sbterm-bg-alt) !important;
+}
+
+body.sbterm .sb-conversation-header-name,
+body.sbterm .sb-conversation-message-name,
+body.sbterm .sb-conversation-rail-title {
+    color: var(--sbterm-accent) !important;
+}
+
+body.sbterm .sb-conversation-header-status,
+body.sbterm .sb-conversation-header-kicker,
+body.sbterm .sb-conversation-message-meta,
+body.sbterm .sb-conversation-message-time,
+body.sbterm .sb-conversation-pal-preview {
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm .sb-conversation-message {
+    inline-size: 100% !important;
+    max-inline-size: 100% !important;
+    display: block !important;
+    align-self: stretch !important;
+    padding: 8px clamp(8px, 2vw, 20px);
+    border-block-end: 1px solid color-mix(in oklch, var(--sbterm-border) 58%, transparent);
+    animation: none !important;
+}
+
+body.sbterm .sb-conversation-message-avatar {
+    display: none !important;
+}
+
+body.sbterm .sb-conversation-message-bubble,
+body.sbterm .sb-conversation-message-reply-preview,
+body.sbterm .sb-conversation-composer-reply-card,
+body.sbterm .sb-conversation-thread-empty,
+body.sbterm .sb-conversation-pal,
+body.sbterm .sb-conversation-branch-button,
+body.sbterm .sb-conversation-attachment,
+body.sbterm .sb-conversation-image-card {
+    inline-size: 100%;
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: var(--sbterm-border) !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.sbterm .sb-conversation-message-bubble {
+    padding: 0 !important;
+    border: 0 !important;
+}
+
+body.sbterm .sb-conversation-message[data-role='user'] .sb-conversation-message-meta {
+    justify-content: flex-start !important;
+    text-align: start !important;
+}
+
+body.sbterm .sb-conversation-message-reply-preview,
+body.sbterm .sb-conversation-composer-reply-card {
+    border: 1px solid var(--sbterm-border) !important;
+}
+
+body.sbterm .sb-conversation-pal:is(:hover, :focus-visible, [aria-current='true']),
+body.sbterm .sb-conversation-branch-button:is(:hover, :focus-visible, [aria-current='true']) {
+    background-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-bg) !important;
+}
+
+body.sbterm .sb-conversation-message-actions,
+body.sbterm .sb-conversation-message-action,
+body.sbterm .sb-conversation-reaction-button {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    border-color: var(--sbterm-border) !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+body.sbterm #sb_conversation_input {
+    border-radius: 0 !important;
+    background-color: transparent !important;
+    color: var(--sbterm-fg) !important;
+    caret-color: var(--sbterm-accent);
+}
+
+body.sbterm #sb_conversation_settings_backdrop,
+body.sbterm .sb-conversation-schedule-modal-overlay {
+    background-color: color-mix(in oklch, var(--sbterm-bg) 78%, transparent) !important;
+}
+
+/* 9. Autocomplete, help, and selectors */
+body.sbterm {
+    --ac-style-color-border: var(--sbterm-border);
+    --ac-style-color-background: var(--sbterm-bg);
+    --ac-style-color-text: var(--sbterm-fg);
+    --ac-style-color-matchedBackground: transparent;
+    --ac-style-color-matchedText: var(--sbterm-accent2);
+    --ac-style-color-selectedBackground: var(--sbterm-accent);
+    --ac-style-color-selectedText: var(--sbterm-bg);
+    --ac-style-color-notSelectableBackground: var(--sbterm-bg-alt);
+    --ac-style-color-notSelectableText: var(--sbterm-fg-dim);
+    --ac-style-color-hoveredBackground: var(--sbterm-bg-alt);
+    --ac-style-color-hoveredText: var(--sbterm-fg);
+    --ac-style-color-argName: var(--sbterm-accent2);
+    --ac-style-color-type: var(--sbterm-ok);
+    --ac-style-color-cmd: var(--sbterm-accent);
+    --ac-style-color-symbol: var(--sbterm-fg-dim);
+    --ac-style-color-string: var(--sbterm-warn);
+    --ac-style-color-number: var(--sbterm-ok);
+    --ac-style-color-variable: var(--sbterm-accent2);
+    --ac-style-color-variableLanguage: var(--sbterm-accent2);
+    --ac-style-color-punctuation: var(--sbterm-fg-dim);
+    --ac-style-color-punctuationL1: var(--sbterm-accent);
+    --ac-style-color-punctuationL2: var(--sbterm-accent2);
+    --ac-style-color-currentParenthesis: var(--sbterm-accent);
+    --ac-style-color-comment: var(--sbterm-fg-dim);
+    --ac-style-color-keyword: var(--sbterm-warn);
+}
+
+body.sbterm .autoComplete-wrap,
+body.sbterm .autoComplete,
+body.sbterm .autoComplete-detailsWrap,
+body.sbterm .autoComplete-details,
+body.sbterm .slashCommandBrowser {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg) !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm .autoComplete-wrap,
+body.sbterm .autoComplete-detailsWrap {
+    --rightOffset: calc(var(--bottomFormBlockSize, 44px) + 1vw);
+    right: calc(var(--bottomFormBlockSize, 44px) + 1vw) !important;
+}
+
+body.sbterm #gg_simple_send_button {
+    order: 100;
+}
+
+body.sbterm .autoComplete > .item.selected,
+body.sbterm .autoComplete > .item:hover {
+    background-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-bg) !important;
+}
+
+body.sbterm .select2-container .select2-selection--single,
+body.sbterm .select2-container .select2-selection--multiple,
+body.sbterm .select2-dropdown,
+body.sbterm .select2-search__field,
+body.sbterm .select2-results__option {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm .select2-results__option--selected,
+body.sbterm .select2-results__option--highlighted {
+    background-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-bg) !important;
+}
+
+/* 10. Dialogs, media, generation, and notifications */
+body.sbterm dialog.popup,
+body.sbterm #dialogue_popup,
+body.sbterm #select_chat_popup,
+body.sbterm .popper-modal,
+body.sbterm .options-content,
+body.sbterm #extensionsMenu,
+body.sbterm #character_context_menu {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg) !important;
+    background-image: none !important;
+    border-color: var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+body.sbterm dialog.popup::backdrop,
+body.sbterm .poly_dialog + .backdrop,
+body.sbterm #shadow_popup,
+body.sbterm #shadow_select_chat_popup {
+    background-color: color-mix(in oklch, var(--sbterm-bg) 78%, transparent) !important;
+}
+
+body.sbterm .mes_img_container,
+body.sbterm .mes_video_container,
+body.sbterm .mes_file_wrapper,
+body.sbterm .mes_audio_container,
+body.sbterm #file_form,
+body.sbterm .streaming-display {
+    border-radius: 0 !important;
+    background-color: var(--sbterm-bg-alt) !important;
+    border-color: var(--sbterm-border) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm .streaming-display-btn-stop,
+body.sbterm .sb-conversation-stop-image,
+body.sbterm #mes_stop,
+body.sbterm #stscript_stop {
+    border-color: var(--sbterm-err) !important;
+    color: var(--sbterm-err) !important;
+}
+
+body.sbterm #toast-container > div {
+    background-color: var(--sbterm-bg-alt) !important;
+    border: 1px solid var(--sbterm-border) !important;
+    border-radius: 0 !important;
     color: var(--sbterm-fg) !important;
     opacity: 1;
+    box-shadow: none !important;
+}
+
+body.sbterm #toast-container .toast-info {
+    border-color: var(--sbterm-accent2) !important;
 }
 
 body.sbterm #toast-container .toast-success {
@@ -519,47 +981,225 @@ body.sbterm #toast-container .toast-warning {
     border-color: var(--sbterm-warn) !important;
 }
 
-/* ── 10. CRT overlay (opt-in via body.sbterm-crt) ─────────────────────── */
+body.sbterm #toast-container .toast-progress {
+    background-color: var(--sbterm-accent) !important;
+}
+
+body.sbterm #toast-container .toast-close-button {
+    color: var(--sbterm-fg) !important;
+}
+
+/* 11. Desktop terminal density */
+@media (min-width: 1001px) and (hover: hover) and (pointer: fine) {
+    body.sbterm.sbterm-minimal #top-bar #sb-topbar-inner {
+        position: relative;
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    body.sbterm.sbterm-minimal #sb-topbar-inner > .sb-topbar-group {
+        position: absolute;
+        inset-block: 0;
+        z-index: 3;
+        max-inline-size: 48%;
+        background-color: var(--sbterm-bg-alt);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 140ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.sbterm.sbterm-minimal #sb-topbar-inner > .sb-topbar-group-left {
+        inset-inline-start: 0;
+    }
+
+    body.sbterm.sbterm-minimal #sb-topbar-inner > .sb-topbar-group-right {
+        inset-inline-end: 0;
+    }
+
+    body.sbterm.sbterm-minimal #top-bar:is(:hover, :focus-within) #sb-topbar-inner > .sb-topbar-group,
+    body.sbterm.sbterm-minimal #sb-topbar-inner > .sb-topbar-group:focus-within {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.sbterm.sbterm-minimal #top-bar:is(:hover, :focus-within) #sbterm-statusline {
+        opacity: 0.16;
+    }
+
+    body.sbterm.sbterm-minimal #chat .mes .mes_buttons,
+    body.sbterm.sbterm-minimal #chat .mes .swipe_left,
+    body.sbterm.sbterm-minimal #chat .mes .swipe_right,
+    body.sbterm.sbterm-minimal #chat .mes .swipes-counter,
+    body.sbterm.sbterm-minimal #chat .mes .mesIDDisplay,
+    body.sbterm.sbterm-minimal #chat .mes .mes_timer,
+    body.sbterm.sbterm-minimal #chat .mes .tokenCounterDisplay,
+    body.sbterm.sbterm-minimal .sb-conversation-message-actions {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 120ms ease-out;
+    }
+
+    body.sbterm.sbterm-minimal #chat .mes:is(:hover, :focus-within) :is(.mes_buttons, .swipe_left, .swipe_right, .swipes-counter, .mesIDDisplay, .mes_timer, .tokenCounterDisplay),
+    body.sbterm.sbterm-minimal #chat .mes .extraMesButtons.visible,
+    body.sbterm.sbterm-minimal .sb-conversation-message-bubble:is(:hover, :focus-within) .sb-conversation-message-actions {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    body.sbterm.sbterm-minimal #leftSendForm > :not(#options_button),
+    body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
+    body.sbterm.sbterm-minimal #gg-action-button-container > .stih--buttons,
+    body.sbterm.sbterm-minimal #gg-action-button-container .gg-action-button:not(#gg_simple_send_button) {
+        inline-size: 0 !important;
+        min-inline-size: 0 !important;
+        max-inline-size: 0 !important;
+        margin-inline: 0 !important;
+        padding-inline: 0 !important;
+        overflow: hidden;
+        border-inline-width: 0 !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    body.sbterm.sbterm-minimal #send_form:hover #leftSendForm > :not(#options_button),
+    body.sbterm.sbterm-minimal #send_form:hover #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
+    body.sbterm.sbterm-minimal #gg-action-button-container:hover > .stih--buttons,
+    body.sbterm.sbterm-minimal #gg-action-button-container:hover .gg-action-button:not(#gg_simple_send_button),
+    body.sbterm.sbterm-minimal #leftSendForm > :not(#options_button):focus-within,
+    body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop):focus-within,
+    body.sbterm.sbterm-minimal #gg-action-button-container > .stih--buttons:focus-within,
+    body.sbterm.sbterm-minimal #gg-action-button-container .gg-action-button:not(#gg_simple_send_button):focus-within {
+        inline-size: auto !important;
+        min-inline-size: revert !important;
+        max-inline-size: none !important;
+        margin-inline: revert !important;
+        padding-inline: revert !important;
+        overflow: visible;
+        border-inline-width: revert !important;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.sbterm.sbterm-minimal .sb-bottom-chat-management-actions,
+    body.sbterm.sbterm-minimal .sb-bottom-chat-search-field {
+        max-inline-size: 0;
+        overflow: hidden;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    body.sbterm.sbterm-minimal #sb-bottom-chat-bar:is(:hover, :focus-within) :is(.sb-bottom-chat-management-actions, .sb-bottom-chat-search-field) {
+        max-inline-size: none;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            'header'
+            'stage';
+    }
+
+    body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_toggle,
+    body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail .sb-conversation-rail-close {
+        display: inline-flex !important;
+    }
+
+    body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 82;
+        inline-size: min(36vw, 360px);
+        display: flex;
+        transform: translateX(calc(-100% - 12px));
+        transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail[data-open='true'] {
+        transform: translateX(0);
+    }
+}
+
+/* 12. Touch and narrow layouts */
+@media (pointer: coarse), (hover: none), (max-width: 1000px) {
+    body.sbterm #top-bar #sb-topbar-inner {
+        grid-template-columns: auto minmax(5rem, 1fr) auto !important;
+    }
+
+    body.sbterm #sbterm-statusline {
+        padding-inline: 6px;
+        font-size: 10px;
+    }
+
+    body.sbterm #chat .mes {
+        padding: 9px 10px !important;
+    }
+
+    body.sbterm #chat .mes_buttons,
+    body.sbterm #chat .swipe_left,
+    body.sbterm #chat .swipe_right,
+    body.sbterm #chat .swipes-counter,
+    body.sbterm .mes_img_swipes,
+    body.sbterm .mes_img_controls,
+    body.sbterm .mes_video_controls {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-bottom-chat-btn, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button) {
+        min-inline-size: var(--sb-mobile-touch-target, 44px);
+        min-block-size: var(--sb-mobile-touch-target, 44px);
+    }
+
+    body.sbterm #nonQRFormItems::before {
+        content: none;
+    }
+}
+
+@media (max-width: 480px) {
+    body.sbterm #sbterm-statusline {
+        font-size: 9px;
+        letter-spacing: -0.02em;
+    }
+}
+
+/* 13. Optional CRT overlay */
 body.sbterm.sbterm-crt::after {
     content: '';
     position: fixed;
     inset: 0;
-    pointer-events: none;
     z-index: 2147483646;
-    background: repeating-linear-gradient(
+    pointer-events: none;
+    background-image: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.12) 0 1px,
+        rgba(2, 4, 3, 0.11) 0 1px,
         transparent 1px 3px
     );
     animation: sbterm-flicker 4s infinite;
 }
 
-body.sbterm.sbterm-crt #chat .mes_text {
+body.sbterm.sbterm-crt :is(#chat .mes_text, #sbterm-statusline) {
     text-shadow: 0 0 2px var(--sbterm-glow);
 }
 
 @keyframes sbterm-flicker {
-    0%, 100% { opacity: 1; }
-    97% { opacity: 1; }
-    98% { opacity: 0.9; }
+    0%, 97%, 100% { opacity: 1; }
+    98% { opacity: 0.92; }
 }
 
-/* ── 11. Mobile (≤768px): keep colors, drop the box-drawing dressing ──── */
-@media (max-width: 768px) {
-    body.sbterm .mes .ch_name .name_text::before {
-        content: '[';
-    }
-
-    body.sbterm .mes .mes_text::before,
-    body.sbterm #nonQRFormItems::before,
-    body.sbterm #top-settings-holder::before {
-        content: none;
-    }
-}
-
-/* ── 12. Reduced motion ───────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
     body.sbterm.sbterm-crt::after {
         animation: none;
+    }
+}
+
+@media (forced-colors: active), (prefers-contrast: more) {
+    body.sbterm.sbterm-crt::after {
+        display: none;
+    }
+
+    body.sbterm :focus-visible {
+        outline: 2px solid CanvasText !important;
     }
 }

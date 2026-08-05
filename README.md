@@ -1,33 +1,72 @@
 # SillyBunny Terminal UI
 
-A [SillyBunny](https://github.com/SillyBunnyTeam/SillyBunny) extension that reskins the entire interface to look like a CLI terminal: monospace everything, flat colors, square corners, and messages framed as shell prompts.
+A command-first interface for [SillyBunny](https://github.com/SillyBunnyTeam/SillyBunny). It keeps the native chat prompt and slash-command system, then reduces the surrounding UI to a tmux-style statusline, flat transcript, and fzf-like command results.
 
-![Chat view in the Phosphor Green palette](screenshot.png)
+![Terminal UI chat view](screenshot.png)
 
-## Features
+## Interaction
 
-- **Full reskin** — every surface (chat, panels, drawers, popups, toasts, scrollbars) goes flat, borderless-shadowless, and monospace. Backgrounds and blur are removed.
-- **Prompt-prefixed messages** — your messages render as `┌─[User@sillybunny]` / `└─$ …`, character replies as `└─> …`, system lines as `# …`. Done entirely with CSS attribute selectors, so no script ever touches message content.
-- **Statusline top bar** — `user@sillybunny:~$` in the top bar, plus a `└─$` prompt beside the chat input.
-- **13 palettes** — Phosphor Green (default), Terminal Amber, Game Boy DMG, Teletext, Chrome 98, DOS Cobalt, Paper Tape, VFD Cyan, Dracula, Gruvbox, Solarized Dark, Nord, and **Inherit Active Theme**, which follows whatever SillyBunny theme is selected. Dim text colors are tuned where canonical values fall below WCAG AA contrast.
-- **CRT effects** — optional scanlines, phosphor glow, and subtle flicker. Off by default; flicker is disabled automatically under `prefers-reduced-motion`.
-- **Instant toggle** — everything is gated on a single body class, so switching the skin on/off in settings applies immediately, with no page reload and no leftover styling.
+The normal SillyBunny composer remains the only prompt:
+
+- Plain text sends chat.
+- A leading `/` uses SillyBunny slash commands and autocomplete.
+- `Alt+Up` and `Alt+Down` use native input history.
+- `Ctrl+Space` opens or expands native command autocomplete.
+- Touch and narrow layouts retain visible 44px controls and the host's send behavior.
+
+Terminal density is enabled by default. Optional controls reveal on hover or keyboard focus; send, stop, script, attachment, confirmation, and close controls remain available. Run `/sbterm ui full` at any time to restore the complete host chrome.
+
+## `/sbterm`
+
+Terminal UI adds one command and does not replace native commands such as `/api`, `/model`, `/preset`, `/theme`, `/chat-manager`, `/go`, or `/newchat`.
+
+| Command | Action |
+| --- | --- |
+| `/sbterm status` | Show the live character/chat, API/model, run state, and last prompt token diagnostics |
+| `/sbterm on` / `/sbterm off` | Enable or disable the interface without disabling the extension |
+| `/sbterm ui terminal` / `/sbterm ui full` | Switch terminal density or full host chrome |
+| `/sbterm palette <slug>` | Select one of the 13 palettes |
+| `/sbterm crt on` / `/sbterm crt off` | Toggle the optional CRT overlay |
+| `/sbterm <destination>` | Open a SillyBunny shell or workspace |
+
+Destinations: `workspace`, `presets`, `api`, `sampling`, `formatting`, `agents`, `customize`, `settings`, `extensions`, `background`, `server`, `logs`, `characters`, `groups`, `editor`, `world-info`, `persona`, `import`, `search`, `chat-tools`, `appearance`, `home`, `conversation`, and `roleplay`.
+
+The same `/sbterm` command works from Conversation Mode. Its existing `/selfie`, `/remind`, `/schedule`, `/summarize`, `/ooc`, and normal message behavior are left untouched.
+
+## Statusline
+
+The top line reports real host state, for example:
+
+```text
+chat:Nahida/Rooftop Talk | api:openrouter/claude-3.7 | run:idle | prompt:11.8k/32.8k
+```
+
+Prompt tokens are counted from the last fully assembled request. Conversation Mode can use a scoped connection, so it reports `prompt:n/a` rather than showing stale Roleplay data.
+
+## Palettes
+
+`phosphor-green`, `terminal-amber`, `gameboy-dmg`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`.
+
+CRT scanlines are optional and off by default. Motion stops under `prefers-reduced-motion`; the overlay is removed under forced colors or increased contrast.
 
 ## Install
 
-Clone into your SillyBunny user extensions folder (or symlink a checkout there):
+Clone or symlink the extension into:
 
-```
+```text
 data/<user-handle>/extensions/SillyBunny-Terminal-UI
 ```
 
-Reload the browser. The skin activates on load; configure it under **Extensions → Terminal UI** (enable toggle, palette picker, CRT toggle).
+Reload SillyBunny, then configure it under **Extensions > Terminal UI**. Settings use SillyBunny's standard extension store.
 
-## Notes
+## Development
 
-- Loads late (`loading_order: 130`) so it wins over other theme extensions when both are enabled; disabling it restores their look untouched.
-- On screens ≤768px the box-drawing frame lines collapse to keep messages readable; palettes and flatness still apply.
-- Settings are stored in the standard extension settings and roam with your SillyBunny user.
+```sh
+npm test
+npm run lint
+```
+
+The extension ships as native browser modules with no build step or runtime dependency.
 
 ## License
 

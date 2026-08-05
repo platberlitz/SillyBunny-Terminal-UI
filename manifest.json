@@ -1,8 +1,8 @@
 {
     "display_name": "Terminal UI",
     "author": "platberlitz",
-    "version": "1.0.0",
-    "description": "Reskins the whole SillyBunny interface as a CLI terminal: monospace everything, flat selectable palettes, prompt-prefixed messages, optional CRT scanlines. Loads late so it wins over other theme extensions when both are enabled.",
+    "version": "2.0.0",
+    "description": "A command-first terminal interface for SillyBunny with native slash autocomplete, keyboard-revealed controls, live diagnostics, 13 palettes, and a touch-safe mobile fallback.",
     "requires": [],
     "optional": [],
     "dependencies": [],
