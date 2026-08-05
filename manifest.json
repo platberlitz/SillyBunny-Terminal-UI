@@ -1,0 +1,20 @@
+{
+    "display_name": "Terminal UI",
+    "author": "platberlitz",
+    "version": "1.0.0",
+    "description": "Reskins the whole SillyBunny interface as a CLI terminal: monospace everything, flat selectable palettes, prompt-prefixed messages, optional CRT scanlines. Loads late so it wins over other theme extensions when both are enabled.",
+    "requires": [],
+    "optional": [],
+    "dependencies": [],
+    "minimum_client_version": "1.7.0",
+    "js": "index.js",
+    "css": "style.css",
+    "license": "AGPL-3.0",
+    "loading_order": 130,
+    "auto_update": false,
+    "hooks": {
+        "activate": "activate",
+        "enable": "enable",
+        "disable": "disable"
+    }
+}
