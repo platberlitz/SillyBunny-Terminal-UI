@@ -836,6 +836,13 @@ body.sbterm #chat .ch_name .mes_buttons {
     margin-inline-start: auto;
 }
 
+/* The host fades every message action to opacity 0.3 and hangs a black
+   drop-shadow off it, which washes out on light palettes and smears on dark. */
+body.sbterm #chat :is(.mes_button, .extraMesButtons > div, .mes_reasoning_actions .mes_button) {
+    opacity: 1;
+    filter: none;
+}
+
 body.sbterm #chat .mes[is_system='true'] .ch_name .name_text,
 body.sbterm #chat .mes[is_system='true'] .mes_text {
     color: var(--sbterm-fg-dim) !important;
