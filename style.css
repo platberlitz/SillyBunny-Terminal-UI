@@ -295,6 +295,23 @@ body.sbterm {
     color: var(--sbterm-fg);
 }
 
+/* The terminal look is the DEFAULT, not an opt-in. Flat, unshadowed and
+   unblurred applies to everything under body.sbterm, so host components this
+   sheet has never heard of — including whatever the host ships next — arrive
+   already terminal instead of arriving as themselves. Naming surfaces one at
+   a time is what let host chrome leak through in the first place.
+   Avatars are excluded: their shape follows the host's avatar setting.
+   Focus rings are drawn with outline, not box-shadow, so they survive. */
+body.sbterm *:not([class*='avatar' i], [id*='avatar' i]),
+body.sbterm *:not([class*='avatar' i], [id*='avatar' i])::before,
+body.sbterm *:not([class*='avatar' i], [id*='avatar' i])::after {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
 body.sbterm :is(.welcomePanel, .welcomeGuidePanel, .welcomePromptPanel) {
     --welcome-strong-fg: var(--sbterm-fg);
     --welcome-muted-fg: var(--sbterm-fg-dim);
@@ -343,26 +360,6 @@ body.sbterm #bg1 {
     pointer-events: none;
 }
 
-body.sbterm #top-bar,
-body.sbterm #sheld,
-body.sbterm .sb-shell-root,
-body.sbterm .drawer-content,
-body.sbterm dialog.popup,
-body.sbterm #dialogue_popup,
-body.sbterm #select_chat_popup,
-body.sbterm .welcomeGuidePanel,
-body.sbterm .welcomeRecentShell,
-body.sbterm .welcomeActionCard,
-body.sbterm .welcomeGuideCard,
-body.sbterm .recentChat,
-body.sbterm .autoComplete-wrap,
-body.sbterm .select2-dropdown {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-}
-
 body.sbterm #sheld::before,
 body.sbterm #top-bar::before,
 body.sbterm .sb-shell-root::before,
@@ -392,18 +389,21 @@ body.sbterm ::-webkit-scrollbar-track {
     background-color: transparent;
 }
 
-/* The settings drawer trigger is a real <button> so it is keyboard operable;
-   strip the UA button chrome and let the host's .inline-drawer-toggle layout. */
+/* The settings drawer trigger is a real <button> so it is keyboard operable.
+   Strip ONLY what the user agent adds to a button — border, background and
+   padding must come from the host's .inline-drawer-header like every sibling
+   extension's header (style.css:6035), or this one row reads as a different
+   theme sitting in the middle of the Extensions list. */
 body.sbterm #sbterm-settings-drawer > .inline-drawer-toggle {
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
-    min-block-size: var(--sb-mobile-touch-target, 44px);
     text-align: start;
-    background: none;
-    border: 0;
-    padding: 8px 0;
     cursor: pointer;
     font: inherit;
     color: inherit;
+    /* The host header settles at 42px; the 44px target is a product promise. */
+    min-block-size: var(--sb-mobile-touch-target, 44px);
 }
 
 /* 4. Top statusline */
@@ -478,6 +478,7 @@ body.sbterm #sbterm-statusline {
 }
 
 body.sbterm .sbterm-status-details {
+    position: relative;
     flex: 0 0 auto;
     padding: 2px 0;
     border: 0;
@@ -487,6 +488,21 @@ body.sbterm .sbterm-status-details {
     text-decoration: underline;
     text-underline-offset: 0.18em;
     cursor: pointer;
+}
+
+/* This is an inline text control on a dense status line inside a FIXED-height
+   top bar. Given a 44px min-height with the blanket touch-target rule it made
+   the status row 44px, the banner 63px, and the 54px bar clipped the title off
+   the top. The target lives in a centered overlay instead: same 44px of
+   tappable area, no effect on the row's height. */
+body.sbterm .sbterm-status-details::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: var(--sb-mobile-touch-target, 44px);
+    block-size: var(--sb-mobile-touch-target, 44px);
+    transform: translate(-50%, -50%);
 }
 
 body.sbterm .sbterm-status-details:is(:hover, :focus-visible) {
@@ -519,7 +535,6 @@ body.sbterm .sb-shell-close,
 body.sbterm .sb-shell-tab,
 body.sbterm .sb-settings-tab-btn,
 body.sbterm .drawer-icon {
-    border-radius: 0 !important;
     color: var(--sbterm-fg-dim) !important;
 }
 
@@ -532,7 +547,6 @@ body.sbterm .drawer-icon:is(:hover, .openIcon) {
 body.sbterm #sb-topbar-search-row,
 body.sbterm .sb-universal-search-field,
 body.sbterm .sb-search-results {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg-alt) !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
@@ -561,10 +575,8 @@ body.sbterm #chat .mes .mes_text,
 body.sbterm #chat .mes .mesAvatarWrapper,
 body.sbterm #chat .mes .mes_text p {
     max-inline-size: 100% !important;
-    border-radius: 0 !important;
     background-color: transparent !important;
     background-image: none !important;
-    box-shadow: none !important;
     transform: none !important;
 }
 
@@ -590,7 +602,6 @@ body.sbterm #chat .mes_text::after,
 body.sbterm #chat .ch_name::after {
     content: none !important;
     background: none !important;
-    box-shadow: none !important;
 }
 
 /* ponytail: restore the Whisper and Echo avatar banners the kill list above
@@ -625,7 +636,6 @@ body.sbterm #sbterm-chat-topbar {
     margin-block-end: 4px;
     border: 0;
     border-block-start: 1px solid color-mix(in oklch, var(--sbterm-border) 45%, transparent);
-    border-radius: 0;
     background: transparent;
 }
 
@@ -796,16 +806,13 @@ body.sbterm .mes_reasoning_details,
 body.sbterm .mes_file_container,
 body.sbterm .mes_audio_container,
 body.sbterm .mes_media_wrapper {
-    border-radius: 0 !important;
     border-color: var(--sbterm-border) !important;
     background-color: var(--sbterm-bg-alt) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm #chat pre,
 body.sbterm #chat code,
 body.sbterm #chat table {
-    border-radius: 0 !important;
     border-color: var(--sbterm-border) !important;
     background-color: var(--sbterm-bg-alt) !important;
     color: var(--sbterm-fg) !important;
@@ -822,10 +829,8 @@ body.sbterm #chat a {
 body.sbterm #form_sheld,
 body.sbterm #send_form,
 body.sbterm #nonQRFormItems {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg) !important;
     background-image: none !important;
-    box-shadow: none !important;
 }
 
 body.sbterm #form_sheld {
@@ -854,15 +859,6 @@ body.sbterm #send_textarea {
     caret-shape: block;
 }
 
-/* The host (especially its phone shell) rounds and drop-shadows the composer
-   action buttons; keep them in the terminal vocabulary in every density. */
-body.sbterm #nonQRFormItems :is(#leftSendForm, #rightSendForm) > div,
-body.sbterm #send_but,
-body.sbterm #send_form .mes_stop {
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-
 body.sbterm #send_but {
     background: var(--sbterm-accent) !important;
     color: var(--sbterm-selected-fg) !important;
@@ -877,21 +873,17 @@ body.sbterm #form_sheld.isExecutingCommandsFromChatInput {
 /* Both chat bars read as quiet terminal strips — hairline separators and
    monochrome glyphs — instead of the host's bordered chip grids. */
 body.sbterm #sb-bottom-chat-bar {
-    border-radius: 0 !important;
     background: transparent !important;
     border: 0 !important;
     border-block-start: 1px solid color-mix(in oklch, var(--sbterm-border) 45%, transparent) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm .sb-bottom-chat-search-field {
-    border-radius: 0 !important;
     background: transparent !important;
     border: 0 !important;
     border-block-end: 1px solid var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
 }
 
 /* #sb-persona-bubble is excluded: it is a button whose persona portrait is
@@ -901,7 +893,6 @@ body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_butt
     background: transparent !important;
     background-image: none !important;
     border-color: transparent !important;
-    box-shadow: none !important;
     color: var(--sbterm-fg-dim) !important;
 }
 
@@ -912,7 +903,6 @@ body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_butt
 }
 
 body.sbterm #sb-persona-bubble {
-    border-radius: 0 !important;
     border-color: color-mix(in oklch, var(--sbterm-border) 60%, transparent) !important;
     background-color: transparent !important;
 }
@@ -922,7 +912,6 @@ body.sbterm #sb-persona-bubble:hover {
 }
 
 body.sbterm #sb-bottom-chat-select {
-    border-radius: 0 !important;
     background: transparent !important;
     border-color: transparent !important;
     color: var(--sbterm-fg-dim) !important;
@@ -947,12 +936,10 @@ body.sbterm .menu_button,
 body.sbterm .menu_button_icon,
 body.sbterm button.sb-conversation-channel-tab,
 body.sbterm button.sb-conversation-tool-button {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg-alt) !important;
     background-image: none !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm .menu_button:is(:hover, :focus-visible),
@@ -985,14 +972,10 @@ body.sbterm .inline-drawer,
 body.sbterm .inline-drawer-header,
 body.sbterm .inline-drawer-content,
 body.sbterm .sb-settings-group {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg) !important;
     background-image: none !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
 }
 
 body.sbterm .sb-shell-nav,
@@ -1003,7 +986,6 @@ body.sbterm .inline-drawer-header {
 
 body.sbterm .sb-shell-tab,
 body.sbterm .sb-settings-tab-btn {
-    border-radius: 0 !important;
     border-color: transparent !important;
     background-color: transparent !important;
     color: var(--sbterm-fg-dim) !important;
@@ -1033,12 +1015,10 @@ body.sbterm .welcomeGuideCard,
 body.sbterm .welcomeDeckFrame,
 body.sbterm .recentChat,
 body.sbterm .noRecentChat {
-    border-radius: 0 !important;
     background-color: transparent !important;
     background-image: none !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm .welcomeGuidePanel,
@@ -1067,7 +1047,6 @@ body.sbterm .welcomePanel .noRecentChat > i {
 
 body.sbterm .welcomeDeckTab,
 body.sbterm .welcomeRecentTab {
-    border-radius: 0 !important;
     color: var(--sbterm-fg-dim) !important;
 }
 
@@ -1079,10 +1058,8 @@ body.sbterm .welcomeRecentTab:is(.active, :focus-visible) {
 
 /* 8. Conversation Mode */
 body.sbterm #sheld[data-sb-conversation-mode='on'] {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg) !important;
     background-image: none !important;
-    box-shadow: none !important;
 }
 
 body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_header,
@@ -1091,13 +1068,9 @@ body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_stage,
 body.sbterm .sb-conversation-tools,
 body.sbterm .sb-conversation-composer,
 body.sbterm #sb_conversation_settings_drawer {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg) !important;
     background-image: none !important;
     border-color: var(--sbterm-border) !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
 }
 
 body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_header,
@@ -1143,11 +1116,9 @@ body.sbterm .sb-conversation-branch-button,
 body.sbterm .sb-conversation-attachment,
 body.sbterm .sb-conversation-image-card {
     inline-size: 100%;
-    border-radius: 0 !important;
     background-color: transparent !important;
     background-image: none !important;
     border-color: var(--sbterm-border) !important;
-    box-shadow: none !important;
     transform: none !important;
 }
 
@@ -1177,16 +1148,11 @@ body.sbterm .sb-conversation-branch-button:is(:hover, :focus-visible, [aria-curr
 body.sbterm .sb-conversation-message-actions,
 body.sbterm .sb-conversation-message-action,
 body.sbterm .sb-conversation-reaction-button {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg-alt) !important;
     border-color: var(--sbterm-border) !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
 }
 
 body.sbterm #sb_conversation_input {
-    border-radius: 0 !important;
     background-color: transparent !important;
     color: var(--sbterm-fg) !important;
     caret-color: var(--sbterm-accent);
@@ -1231,11 +1197,9 @@ body.sbterm .autoComplete,
 body.sbterm .autoComplete-detailsWrap,
 body.sbterm .autoComplete-details,
 body.sbterm .slashCommandBrowser {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg) !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm .autoComplete-wrap:not(.isFloating),
@@ -1269,11 +1233,9 @@ body.sbterm .select2-container .select2-selection--multiple,
 body.sbterm .select2-dropdown,
 body.sbterm .select2-search__field,
 body.sbterm .select2-results__option {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg-alt) !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm .select2-results__option--selected,
@@ -1290,14 +1252,10 @@ body.sbterm .popper-modal,
 body.sbterm .options-content,
 body.sbterm #extensionsMenu,
 body.sbterm #character_context_menu {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg) !important;
     background-image: none !important;
     border-color: var(--sbterm-border) !important;
     color: var(--sbterm-fg) !important;
-    box-shadow: none !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
 }
 
 body.sbterm dialog.popup::backdrop,
@@ -1313,10 +1271,8 @@ body.sbterm .mes_file_wrapper,
 body.sbterm .mes_audio_container,
 body.sbterm #file_form,
 body.sbterm .streaming-display {
-    border-radius: 0 !important;
     background-color: var(--sbterm-bg-alt) !important;
     border-color: var(--sbterm-border) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm .streaming-display-btn-stop,
@@ -1330,10 +1286,8 @@ body.sbterm #stscript_stop {
 body.sbterm #toast-container > div {
     background-color: var(--sbterm-bg-alt) !important;
     border: 1px solid var(--sbterm-border) !important;
-    border-radius: 0 !important;
     color: var(--sbterm-fg) !important;
     opacity: 1;
-    box-shadow: none !important;
 }
 
 body.sbterm #toast-container .toast-info {
@@ -1392,6 +1346,10 @@ body.sbterm #toast-container .toast-close-button {
 
 :is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) .sb-topbar-brand {
     align-items: flex-start;
+    /* The host clips this box, which would eat the status button's touch
+       overlay. The title and statusline each own their ellipsis, so nothing
+       here depends on the clip. */
+    overflow: visible;
 }
 
 :is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) #sbterm-banner {
@@ -1509,21 +1467,14 @@ body.sbterm:not(.sbterm-home-visible) #chat .welcomePanel {
     display: none !important;
 }
 
-/* Terminal Home is the same focused shell in either density. Keep the host's
-   configured backdrop, then tint it with the active terminal palette. */
-body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) {
-    background-color: transparent !important;
-}
-
-body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #bg1 {
-    opacity: var(--customCSS-bg-opacity, 1);
-}
-
+/* Terminal Home is the same focused shell in either density, on the same flat
+   surface as every other screen. It used to reveal the host wallpaper and float
+   a 72%-opaque blurred #sheld over it, which read as three different
+   backgrounds stacked — statusline, a strip of raw wallpaper, then a tinted
+   panel. #bg1 stays hidden here like it is everywhere else. */
 body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #top-bar {
     background-color: var(--sbterm-bg) !important;
     border-block-end: 0;
-    -webkit-backdrop-filter: blur(20px) !important;
-    backdrop-filter: blur(20px) !important;
 }
 
 body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #top-bar #sb-topbar-inner {
@@ -1536,14 +1487,7 @@ body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #sb-topbar-inner 
 
 body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #sheld {
     border: 0;
-    background-color: color-mix(in srgb, var(--sbterm-bg) 72%, transparent) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    backdrop-filter: blur(14px) !important;
-}
-
-body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #chat {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    background-color: var(--sbterm-bg) !important;
 }
 
 body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld {
@@ -1675,7 +1619,6 @@ body.sbterm .sbterm-command-glossary-help {
 body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) :is(#form_sheld, #send_form, #nonQRFormItems) {
     border: 0 !important;
     background: var(--sbterm-bg) !important;
-    box-shadow: none !important;
 }
 
 body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #nonQRFormItems {
@@ -1705,7 +1648,6 @@ body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .stih--sta
 body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #send_textarea {
     background: transparent !important;
     border: 0 !important;
-    border-radius: 0 !important;
     line-height: 1.5;
     text-align: start !important;
     box-shadow: inset 0 -1px color-mix(in oklch, var(--sbterm-accent) 32%, transparent) !important;
@@ -1894,7 +1836,6 @@ body.sbterm.sbterm-minimal .stih--standalone {
 
 body.sbterm.sbterm-minimal #send_textarea {
     border: 0 !important;
-    border-radius: 0 !important;
     line-height: 1.5;
 }
 
@@ -2052,13 +1993,11 @@ body.sbterm.sbterm-minimal .welcomeRecentTabs {
 body.sbterm.sbterm-minimal .welcomeRecentTab {
     min-block-size: 32px;
     padding: 4px 8px;
-    border-radius: 0;
 }
 
 body.sbterm.sbterm-minimal .welcomeRecentTab.active {
     background-color: transparent;
     color: var(--sbterm-accent);
-    box-shadow: none;
     font-weight: 700;
 }
 
@@ -2070,7 +2009,6 @@ body.sbterm.sbterm-minimal .welcomeRecent .recentChatList .recentChat {
     gap: 0;
     padding: 10px 1ch;
     transform: none;
-    box-shadow: none;
 }
 
 body.sbterm.sbterm-minimal .recentChat .avatar {
@@ -2298,7 +2236,7 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         pointer-events: auto !important;
     }
 
-    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #extensionsMenuButton, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button, .qr--button, .welcomeShortcut, .welcomeRecentTab, .sbterm-status-details, .sb-conversation-channel-tab, .sb-conversation-mobile-menu-trigger, .sb-conversation-message-action, .sb-conversation-reaction-button, .sb-conversation-message-avatar, .sb-conversation-participant-avatar.is-interactive, .sb-conversation-rail-footer-avatar, .sb-conversation-pal-delete, .sb-conversation-branch-action, .sb-conversation-new-branch, .sb-conversation-stop-image, .swipes-counter.swipe-picker-enabled, .mes_img_swipes .right_menu_button, .mes_img_controls .right_menu_button, .mes_video_controls .right_menu_button) {
+    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #extensionsMenuButton, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button, .qr--button, .welcomeShortcut, .welcomeRecentTab, .sb-conversation-channel-tab, .sb-conversation-mobile-menu-trigger, .sb-conversation-message-action, .sb-conversation-reaction-button, .sb-conversation-message-avatar, .sb-conversation-participant-avatar.is-interactive, .sb-conversation-rail-footer-avatar, .sb-conversation-pal-delete, .sb-conversation-branch-action, .sb-conversation-new-branch, .sb-conversation-stop-image, .swipes-counter.swipe-picker-enabled, .mes_img_swipes .right_menu_button, .mes_img_controls .right_menu_button, .mes_video_controls .right_menu_button) {
         min-inline-size: var(--sb-mobile-touch-target, 44px);
         min-block-size: var(--sb-mobile-touch-target, 44px);
     }
@@ -2391,8 +2329,10 @@ body.sbterm.sbterm-crt::after {
     animation: sbterm-flicker 4s infinite;
 }
 
+/* !important because the §3 reset strips text-shadow globally; the CRT glow
+   is the one deliberate exception. */
 body.sbterm.sbterm-crt :is(#chat .mes_text, #sbterm-statusline) {
-    text-shadow: 0 0 2px var(--sbterm-glow);
+    text-shadow: 0 0 2px var(--sbterm-glow) !important;
 }
 
 @keyframes sbterm-flicker {

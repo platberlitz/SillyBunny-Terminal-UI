@@ -26,7 +26,9 @@ const PALETTES = [
 ];
 
 const PALETTE_IDS = PALETTES.map(([id]) => id);
-const DEFAULTS = { version: 2, enabled: true, palette: 'phosphor-green', crt: false, minimal: true, topbarVisible: false, avatarVisible: true, chatTopbarVisible: false, bottomBarVisible: false };
+// null on the bar toggles = follow the density default (hidden in terminal,
+// shown in Full chrome). A command sets an explicit boolean that wins in both.
+const DEFAULTS = { version: 3, enabled: true, palette: 'phosphor-green', crt: false, minimal: true, topbarVisible: null, avatarVisible: true, chatTopbarVisible: null, bottomBarVisible: null };
 
 /* The Moonlit Echoes theme extension restyles the same surfaces this reskin
    owns and the two fight; while Terminal UI is on, its stylesheets are turned
@@ -122,8 +124,10 @@ const TOGGLE_CONFIG = {
     'open-nav-topbar': { patch: { topbarVisible: true }, success: 'Top bar shown.' },
     'hide-avatar': { patch: { avatarVisible: false }, success: 'Avatars hidden.' },
     'show-avatar': { patch: { avatarVisible: true }, success: 'Avatars shown.' },
-    'show-chat-topbar': { patch: { chatTopbarVisible: true }, success: 'Chat top bar shown.' },
-    'hide-chat-topbar': { patch: { chatTopbarVisible: false }, success: 'Chat top bar hidden.' },
+    // Full chrome leaves the host's toolbars where the host puts them and never
+    // builds #sbterm-chat-topbar, so these two have nothing to act on there.
+    'show-chat-topbar': { patch: { chatTopbarVisible: true }, success: 'Chat top bar shown.', terminalOnly: true },
+    'hide-chat-topbar': { patch: { chatTopbarVisible: false }, success: 'Chat top bar hidden.', terminalOnly: true },
     'show-bottom-bar': { patch: { bottomBarVisible: true }, success: 'Chat bottom bar shown.' },
     'hide-bottom-bar': { patch: { bottomBarVisible: false }, success: 'Chat bottom bar hidden.' },
 };
@@ -202,16 +206,26 @@ function ensureSettings() {
         }
     }
 
+    // v3 turned the bar toggles tri-state. A stored `false` from v2 was written
+    // by the normalizer, not by the user, and would now read as an explicit hide
+    // in Full chrome — so hand them back to the density default.
+    if (Number(settings.version) < 3) {
+        for (const key of ['topbarVisible', 'chatTopbarVisible', 'bottomBarVisible']) {
+            settings[key] = null;
+        }
+        changed = true;
+    }
+
     const normalized = {
         version: DEFAULTS.version,
         enabled: typeof settings.enabled === 'boolean' ? settings.enabled : DEFAULTS.enabled,
         palette: PALETTE_IDS.includes(settings.palette) ? settings.palette : DEFAULTS.palette,
         crt: typeof settings.crt === 'boolean' ? settings.crt : DEFAULTS.crt,
         minimal: typeof settings.minimal === 'boolean' ? settings.minimal : DEFAULTS.minimal,
-        topbarVisible: typeof settings.topbarVisible === 'boolean' ? settings.topbarVisible : DEFAULTS.topbarVisible,
+        topbarVisible: typeof settings.topbarVisible === 'boolean' ? settings.topbarVisible : null,
         avatarVisible: typeof settings.avatarVisible === 'boolean' ? settings.avatarVisible : DEFAULTS.avatarVisible,
-        chatTopbarVisible: typeof settings.chatTopbarVisible === 'boolean' ? settings.chatTopbarVisible : DEFAULTS.chatTopbarVisible,
-        bottomBarVisible: typeof settings.bottomBarVisible === 'boolean' ? settings.bottomBarVisible : DEFAULTS.bottomBarVisible,
+        chatTopbarVisible: typeof settings.chatTopbarVisible === 'boolean' ? settings.chatTopbarVisible : null,
+        bottomBarVisible: typeof settings.bottomBarVisible === 'boolean' ? settings.bottomBarVisible : null,
     };
 
     for (const [key, value] of Object.entries(normalized)) {
@@ -275,12 +289,19 @@ function apply() {
     document.body.classList.toggle('sbterm', enabled);
     document.body.classList.toggle('sbterm-minimal', terminal);
     document.body.classList.toggle('sbterm-crt', enabled && settings.crt);
-    document.body.classList.toggle('sbterm-topbar-hidden', terminal && !settings.topbarVisible);
-    document.body.classList.toggle('sbterm-avatar-hidden', terminal && !settings.avatarVisible);
-    document.body.classList.toggle('sbterm-chat-topbar-hidden', terminal && !settings.chatTopbarVisible);
-    document.body.classList.toggle('sbterm-bottom-bar-hidden', terminal && !settings.bottomBarVisible);
+    // These four gated on `terminal`, so every /hide-* and /show-* command was a
+    // silent no-op in Full chrome — it reported success and changed nothing.
+    // null means "follow the density default"; an explicit command wins in both.
+    const densityDefault = !settings.minimal;
+    const topbarVisible = settings.topbarVisible ?? densityDefault;
+    const chatTopbarVisible = settings.chatTopbarVisible ?? densityDefault;
+    const bottomBarVisible = settings.bottomBarVisible ?? densityDefault;
+    document.body.classList.toggle('sbterm-topbar-hidden', enabled && !topbarVisible);
+    document.body.classList.toggle('sbterm-avatar-hidden', enabled && !settings.avatarVisible);
+    document.body.classList.toggle('sbterm-chat-topbar-hidden', enabled && !chatTopbarVisible);
+    document.body.classList.toggle('sbterm-bottom-bar-hidden', enabled && !bottomBarVisible);
 
-    syncBottomBar(enabled, !settings.minimal || settings.bottomBarVisible);
+    syncBottomBar(enabled, bottomBarVisible);
     syncChatTopbar(terminal);
     syncMoonlitSuppression(enabled);
 
@@ -1129,6 +1150,10 @@ function runToggleCommand(name) {
             return opened ? 'home' : 'home unavailable';
         }
         const config = TOGGLE_CONFIG[name];
+        if (config.terminalOnly && !getSettings().minimal) {
+            notify('That toggle only applies to the Terminal interface; Full chrome keeps the host toolbars.', 'warning');
+            return 'not applicable in full chrome';
+        }
         updateSettings(config.patch);
         notify(config.success, 'success');
         return String(config.patch[Object.keys(config.patch)[0]]);
@@ -1143,7 +1168,12 @@ function registerTopLevelCommands() {
     if (!parser || !SlashCommand) return;
 
     const register = (name, callback, helpString) => {
-        if (parser.commands?.[name]) return;
+        if (parser.commands?.[name]) {
+            // /api is expected to collide — the host owns it and /open-api is the
+            // alias. Anything else colliding is a command the user will find dead.
+            if (name !== 'api') console.warn(`Terminal UI skipped /${name}: a command with that name already exists`);
+            return;
+        }
         try {
             const command = SlashCommand.fromProps({ name, callback, helpString, returns: 'the command result' });
             parser.addCommandObject(command);

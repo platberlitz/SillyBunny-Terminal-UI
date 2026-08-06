@@ -470,13 +470,17 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     await Promise.resolve();
 
     const settings = context.extensionSettings['SillyBunny-Terminal-UI'];
-    assert.equal(settings.version, 2);
+    assert.equal(settings.version, 3);
     assert.equal(settings.minimal, true);
     assert.equal(settings.palette, 'nord');
-    assert.equal(settings.topbarVisible, false);
+    // null = follow the density default, so an explicit /hide-* or /show-* is
+    // distinguishable from "never touched" and applies in Full chrome too.
+    assert.equal(settings.topbarVisible, null);
     assert.equal(settings.avatarVisible, true);
-    assert.equal(settings.chatTopbarVisible, false);
-    assert.equal(settings.bottomBarVisible, false);
+    assert.equal(settings.chatTopbarVisible, null);
+    assert.equal(settings.bottomBarVisible, null);
+    assert(document.body.classList.contains('sbterm-topbar-hidden'), 'terminal density still hides the nav bar by default');
+    assert(document.body.classList.contains('sbterm-bottom-bar-hidden'), 'terminal density still hides the bottom bar by default');
     assert.equal(saves, 1);
     assert(document.body.classList.contains('sbterm'));
     assert(document.body.classList.contains('sbterm-minimal'));
@@ -1050,7 +1054,8 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert(!css.includes('sbterm-minimal:not(.sbterm-home-visible)'), 'Home replacement must not depend on terminal density');
     assert.match(css, /\.sbterm-command-glossary[^}]+max-block-size:\s*min\(50dvh, 28rem\)[^}]+overflow-y:\s*auto;/s, 'the complete Home reference must scroll independently');
     assert.match(css, /\.sbterm-command-glossary-list[^}]+grid-template-columns:\s*minmax\(0, 1fr\)/s, 'Home commands must remain one column so descriptions cannot overlap');
-    assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #bg1\s*\{[^}]+opacity:\s*var\(--customCSS-bg-opacity, 1\);/s, 'Terminal Home must retain the configured host backdrop');
+    assert.doesNotMatch(css, /:has\(#chat \.welcomePanel\) #bg1\b/, 'Terminal Home must sit on the flat terminal surface, not reveal the host wallpaper');
+    assert.doesNotMatch(css, /:has\(#chat \.welcomePanel\) #sheld\s*\{[^}]*backdrop-filter/s, 'Terminal Home must not float a translucent blurred panel over the page');
     assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #top-bar\s*\{[^}]+background-color:\s*var\(--sbterm-bg\) !important;/s, 'Home text chrome needs an opaque contrast backing');
     assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block:not\(:has\(\.edit_textarea, \.reasoning_edit_textarea\)\)\s*\{[^}]+display:\s*grid !important;/s, 'message editors must opt out of the inline user-message grid');
     assert.match(css, /--ac-style-color-selectedText:\s*var\(--sbterm-selected-fg\);/, 'selected autocomplete text must use the on-accent token');
@@ -1061,7 +1066,22 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block \.mes_buttons\s*\{[^}]+position:\s*static;[^}]+flex-wrap:\s*wrap;/s, 'touch message actions must not overlay message text');
     assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block:not\(:has\(\.edit_textarea, \.reasoning_edit_textarea\)\)\s*\{\s*display:\s*block !important;/s, 'touch must unstack the inline user-message grid');
     assert.match(css, /\.sb-shell-tab:is\(:hover, :focus-visible, \[aria-selected='true'\]\) :is\(i, svg\)[^{]*\{[^}]+color:\s*var\(--sbterm-selected-fg\) !important;/s, 'accent-filled tabs must not keep the host accent-tinted icon');
+
+    // The terminal look is applied once to everything, not element by element.
+    // Re-enumerating is what lets host chrome leak back in, so the counts below
+    // are the guard: each of these belongs to the §3 reset and nowhere else.
+    assert.match(css, /body\.sbterm \*:not\(\[class\*='avatar' i\], \[id\*='avatar' i\]\)[^{]*\{[^}]*border-radius:\s*0 !important;[^}]*box-shadow:\s*none !important;/s, 'the flat terminal surface must be the global default');
+    assert.equal(css.match(/border-radius:\s*0/g).length, 1, 'flat corners belong to the global reset, not to per-element rules');
+    assert.equal(css.match(/box-shadow:\s*none/g).length, 1, 'flat surfaces belong to the global reset, not to per-element rules');
+    assert.match(css, /text-shadow:\s*0 0 2px var\(--sbterm-glow\) !important;/, 'the CRT glow must outrank the global text-shadow reset');
+    assert.doesNotMatch(css, /#sbterm-settings-drawer > \.inline-drawer-toggle\s*\{[^}]*\b(border|padding|background):/s, "the extension's own drawer must inherit the host header chrome its siblings get");
     assert.match(css, /--sb-bottom-chat-mobile-button-size:\s*var\(--sb-mobile-touch-target, 44px\);/, 'bottom-bar controls must inherit the 44px touch target');
+    // Measured: a 44px min-height here made the status row 44px and the banner
+    // 63px inside a 54px fixed top bar, clipping the title. The overlay keeps
+    // the target without the height.
+    assert.doesNotMatch(css, /\.sbterm-status-details,/, 'the status button must stay out of the blanket min-size touch-target list');
+    assert.match(css, /\.sbterm-status-details::after\s*\{[^}]*block-size:\s*var\(--sb-mobile-touch-target, 44px\);/s, 'the status button keeps a 44px tappable overlay');
+    assert.match(css, /\.sb-topbar-brand\s*\{[^}]*overflow:\s*visible;/s, 'the brand must not clip the status button overlay');
     assert.match(css, /@media \(forced-colors: active\)\s*\{[^}]+outline:\s*2px solid CanvasText !important;/s, 'system focus colors belong only to forced-colors mode');
     assert.doesNotMatch(css, /@media \(forced-colors: active\), \(prefers-contrast: more\)\s*\{[^}]+CanvasText/s, 'ordinary increased contrast must keep palette-aware focus rings');
     const palettes = ['phosphor-green', 'terminal-amber', 'gameboy-dmg', 'teletext', 'chrome-98', 'dos-cobalt', 'paper-tape', 'vfd-cyan', 'dracula', 'gruvbox', 'solarized-dark', 'nord'];
