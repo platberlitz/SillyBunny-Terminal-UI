@@ -30,8 +30,7 @@ const DEFAULTS = { version: 2, enabled: true, palette: 'phosphor-green', crt: fa
 
 /* The Moonlit Echoes theme extension restyles the same surfaces this reskin
    owns and the two fight; while Terminal UI is on, its stylesheets are turned
-   off in place (sheet.disabled — nothing is persisted, so turning Terminal UI
-   off brings Moonlit straight back). */
+   off in place and their prior state is restored afterwards. */
 const MOONLIT_STYLE_IDS = [
     'MoonlitEchosTheme-style',
     'MoonlitEchosTheme-extension',
@@ -42,19 +41,27 @@ const MOONLIT_STYLE_IDS = [
     'third-party_SillyBunny-MoonlitEchoesTheme-css',
 ];
 let moonlitObserver = null;
+const moonlitStates = new Map();
 
 function syncMoonlitSuppression(enabled) {
     if (typeof document === 'undefined') return;
-    for (const id of MOONLIT_STYLE_IDS) {
-        const sheet = document.getElementById(id);
-        if (sheet && 'disabled' in sheet) sheet.disabled = enabled;
-    }
-    if (enabled && !moonlitObserver && typeof MutationObserver !== 'undefined' && document.head) {
-        moonlitObserver = new MutationObserver(() => syncMoonlitSuppression(true));
-        moonlitObserver.observe(document.head, { childList: true });
-    } else if (!enabled) {
+    if (!enabled) {
         moonlitObserver?.disconnect();
         moonlitObserver = null;
+        for (const [sheet, disabled] of moonlitStates) sheet.disabled = disabled;
+        moonlitStates.clear();
+        return;
+    }
+
+    for (const id of MOONLIT_STYLE_IDS) {
+        const sheet = document.getElementById(id);
+        if (!sheet || !('disabled' in sheet)) continue;
+        if (!moonlitStates.has(sheet)) moonlitStates.set(sheet, sheet.disabled);
+        sheet.disabled = true;
+    }
+    if (!moonlitObserver && typeof MutationObserver !== 'undefined' && document.head) {
+        moonlitObserver = new MutationObserver(() => syncMoonlitSuppression(true));
+        moonlitObserver.observe(document.head, { childList: true });
     }
 }
 
@@ -132,6 +139,9 @@ const COMMAND_GLOSSARY = [
     ['/chat-tools', 'Open recent chat tools'],
     ['/open-chats', 'Open recent chats'],
     ['/appearance', 'Open appearance settings'],
+    ['/open-homepage', 'Reveal native SillyBunny Home'],
+    ['/open-conversation', 'Open Conversation Mode'],
+    ['/open-roleplay', 'Return to Roleplay Mode'],
     ['/hide-topbar', 'Hide the navigation top bar'],
     ['/open-nav-topbar', 'Show the navigation top bar'],
     ['/hide-home', 'Replace native Home with Terminal Home'],
@@ -166,6 +176,7 @@ let tokenSequence = 0;
 let lastPromptTokens = null;
 let lastPromptIdentity = '';
 let lastStatusText = '';
+let conversationCommandPending = false;
 
 function ctx() {
     return globalThis.SillyTavern?.getContext?.() ?? null;
@@ -260,15 +271,17 @@ function apply() {
 
     const settings = getSettings();
     const enabled = active && settings.enabled;
+    const terminal = enabled && settings.minimal;
     document.body.classList.toggle('sbterm', enabled);
-    document.body.classList.toggle('sbterm-minimal', enabled && settings.minimal);
+    document.body.classList.toggle('sbterm-minimal', terminal);
     document.body.classList.toggle('sbterm-crt', enabled && settings.crt);
-    document.body.classList.toggle('sbterm-topbar-hidden', enabled && !settings.topbarVisible);
-    document.body.classList.toggle('sbterm-avatar-hidden', enabled && !settings.avatarVisible);
-    document.body.classList.toggle('sbterm-chat-topbar-hidden', enabled && !settings.chatTopbarVisible);
-    document.body.classList.toggle('sbterm-bottom-bar-hidden', enabled && !settings.bottomBarVisible);
+    document.body.classList.toggle('sbterm-topbar-hidden', terminal && !settings.topbarVisible);
+    document.body.classList.toggle('sbterm-avatar-hidden', terminal && !settings.avatarVisible);
+    document.body.classList.toggle('sbterm-chat-topbar-hidden', terminal && !settings.chatTopbarVisible);
+    document.body.classList.toggle('sbterm-bottom-bar-hidden', terminal && !settings.bottomBarVisible);
 
-    syncBottomBar(enabled, settings.bottomBarVisible);
+    syncBottomBar(enabled, !settings.minimal || settings.bottomBarVisible);
+    syncChatTopbar(terminal);
     syncMoonlitSuppression(enabled);
 
     if (enabled) {
@@ -461,6 +474,7 @@ function ensureFormMascot() {
     }
     if (!document.querySelector('.sbterm-command-glossary')) {
         const glossary = el('section', 'sbterm-command-glossary');
+        glossary.tabIndex = 0;
         const heading = el('h2', 'sbterm-command-glossary-title', 'Commands');
         heading.id = 'sbterm-command-glossary-title';
         glossary.setAttribute('aria-labelledby', heading.id);
@@ -536,11 +550,21 @@ function restoreHostNodes() {
     }
 }
 
-function teardownDom() {
-    if (typeof document === 'undefined') return;
+function syncChatTopbar(enabled) {
+    if (enabled) {
+        ensureChatTopbar();
+        return;
+    }
     chatTopbarObserver?.disconnect();
     chatTopbarObserver = null;
     chatTopbarObserverTarget = null;
+    restoreHostNodes();
+    document.getElementById(CHAT_TOPBAR_ID)?.remove();
+}
+
+function teardownDom() {
+    if (typeof document === 'undefined') return;
+    syncChatTopbar(false);
     conversationObserver?.disconnect();
     conversationObserver = null;
     autocompleteObserver?.disconnect();
@@ -550,10 +574,8 @@ function teardownDom() {
     composerResizeObserver = null;
     autocompleteAlignQueued = false;
     restoreBottomBar();
-    restoreHostNodes();
     clearHomeAutocompleteAlignment();
     document.querySelector?.('#form_sheld')?.style?.removeProperty?.('--sbterm-composer-row-width');
-    document.getElementById(CHAT_TOPBAR_ID)?.remove();
     document.getElementById(BANNER_ID)?.remove();
     document.querySelector('.sbterm-mascot-form')?.remove();
     document.querySelector('.sbterm-command-glossary')?.remove();
@@ -563,7 +585,8 @@ function rebuildDom() {
     if (!active || !getSettings().enabled) return;
     ensureStatusline();
     ensureFormMascot();
-    ensureChatTopbar();
+    syncChatTopbar(getSettings().minimal);
+    bindMainCommandInput();
     observeComposerRow();
     observeConversationTimeline();
     observeAutocomplete();
@@ -643,7 +666,7 @@ function parseCount(value) {
 
 function formatCount(value) {
     if (!Number.isFinite(value)) return '-';
-    if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
     return String(Math.round(value));
 }
 
@@ -665,6 +688,30 @@ function currentRunState(connection, conversationMode) {
     return 'idle';
 }
 
+async function conversationStatus(context) {
+    const fallbackProfile = context?.extensionSettings?.sillybunny_conversation?.settings?.connection_profile ?? '';
+    let profile = fallbackProfile;
+    try {
+        const { getSettings: getConversationSettings } = await import('/scripts/sillybunny-conversation/settings-store.js');
+        profile = getConversationSettings?.()?.connection_profile ?? fallbackProfile;
+    } catch {
+        // Older hosts may not expose the internal settings module.
+    }
+    return {
+        name: cleanStatusPart(document.querySelector('#sb_conversation_header [data-sb-conversation-name]')?.textContent, 'Conversation'),
+        profile: String(profile ?? '').trim(),
+    };
+}
+
+function scopedConversationConnection(context, profileName) {
+    const name = String(profileName ?? '').trim();
+    if (!name || typeof context?.ConnectionManagerRequestService?.sendRequest !== 'function') return null;
+    const profiles = context.extensionSettings?.connectionManager?.profiles ?? [];
+    return profiles.some(profile => profile?.id && profile.name === name)
+        ? { disconnected: false, text: `profile:${cleanStatusPart(name)}` }
+        : null;
+}
+
 async function renderStatusline() {
     if (!active || typeof document === 'undefined') {
         return '';
@@ -684,19 +731,21 @@ async function renderStatusline() {
 
     const sequence = ++renderSequence;
     const conversationMode = isConversationMode();
-    const connection = await connectionSummary(context);
+    const conversation = conversationMode ? await conversationStatus(context) : null;
+    const connection = scopedConversationConnection(context, conversation?.profile) ?? await connectionSummary(context);
     if (!active || sequence !== renderSequence) {
         return lastStatusText;
     }
 
-    const profile = conversationMode ? cleanStatusPart(document.getElementById('sb_conv_connection_profile')?.value, '') : '';
-    const connectionText = profile ? `profile:${profile}` : connection.text;
+    const connectionText = connection.text;
     const identity = statusIdentity(context, connectionText);
     const maxContext = parseCount(context.substituteParams?.('{{maxContext}}'));
     const prompt = !conversationMode && identity === lastPromptIdentity ? lastPromptTokens : null;
     const locationPrefix = conversationMode ? 'dm' : 'chat';
+    const location = conversationMode ? conversation.name : currentChatLabel(context);
+    const promptText = conversationMode ? 'n/a' : `${formatCount(prompt)}/${formatCount(maxContext)}`;
     const runState = currentRunState(connection, conversationMode);
-    const nextStatusText = `run:${runState} | ${locationPrefix}:${currentChatLabel(context)} | api:${cleanStatusPart(connectionText)} | prompt:${conversationMode ? 'n/a' : formatCount(prompt)}/${formatCount(maxContext)}`;
+    const nextStatusText = `run:${runState} | ${locationPrefix}:${location} | api:${cleanStatusPart(connectionText)} | prompt:${promptText}`;
     lastStatusText = nextStatusText;
     if (status.textContent !== nextStatusText) status.textContent = nextStatusText;
     status.title = lastStatusText;
@@ -809,7 +858,16 @@ async function openConversation() {
     return Boolean(await conversation.openConversationWorkspaceFromWelcome?.());
 }
 
+async function closeConversationWorkspace() {
+    if (!isConversationMode()) return true;
+    globalThis.dispatchEvent?.(new Event('sb:close-conversation-workspace'));
+    await nextFrame();
+    await nextFrame();
+    return !isConversationMode();
+}
+
 async function showHomepage() {
+    if (!await closeConversationWorkspace()) return false;
     const home = document.getElementById('sb-home-toggle');
     if (!home) return false;
 
@@ -830,6 +888,7 @@ async function showHomepage() {
 }
 
 async function showTerminalHome() {
+    if (!await closeConversationWorkspace()) return false;
     if (!document.querySelector('.welcomePanel')) {
         const closeCurrentChat = ctx()?.closeCurrentChat;
         if (typeof closeCurrentChat !== 'function' || !await closeCurrentChat()) return false;
@@ -887,9 +946,9 @@ async function openDestination(destination) {
         case 'conversation':
             return openConversation();
         case 'roleplay': {
-            const conversation = await import('/scripts/sillybunny-conversation.js');
-            await conversation.disableConversationModeForCurrentCharacter?.({ focusRoleplay: true });
-            return true;
+            const closed = await closeConversationWorkspace();
+            if (closed) document.getElementById('send_textarea')?.focus?.();
+            return closed;
         }
         default:
             return false;
@@ -1065,9 +1124,9 @@ function runToggleCommand(name) {
     return async () => {
         if (!active) return 'Terminal UI is disabled.';
         if (name === 'hide-home') {
-            hideHome();
-            notify('Home hidden.');
-            return 'home hidden';
+            const opened = await showTerminalHome();
+            notify(opened ? 'Terminal Home shown.' : 'Home is unavailable.', opened ? 'success' : 'warning');
+            return opened ? 'home' : 'home unavailable';
         }
         const config = TOGGLE_CONFIG[name];
         updateSettings(config.patch);
@@ -1100,6 +1159,9 @@ function registerTopLevelCommands() {
     }
     for (const name of ['search', 'chat-tools', 'open-chats', 'appearance', 'open-homepage']) {
         register(name, runDestinationCommand(name), `Open the ${destinationLabel(name)} panel.`);
+    }
+    for (const destination of ['conversation', 'roleplay']) {
+        register(`open-${destination}`, runDestinationCommand(destination), `Open ${destinationLabel(destination)} mode.`);
     }
     for (const name of TOGGLE_COMMANDS) {
         register(name, runToggleCommand(name), name === 'hide-home'
@@ -1144,16 +1206,29 @@ function clearCommandInput(input) {
     input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+async function executeMainCommand(context, command) {
+    if (typeof context?.executeSlashCommandsOnChatInput === 'function') {
+        return context.executeSlashCommandsOnChatInput(command, { clearChatInput: false, source: MODULE });
+    }
+    const { executeSlashCommandsOnChatInput } = await import('/scripts/slash-commands.js');
+    return executeSlashCommandsOnChatInput(command, { clearChatInput: false, source: MODULE });
+}
+
 function executeOwnedCommand(event, input) {
     const command = input.value.trim();
     if (!isOwnedCommand(command) && !isRegisteredConversationCommand(command, input) && !isAssistantTrapCommand(command, input)) return false;
     const context = ctx();
+    const conversation = input.id === 'sb_conversation_input';
     const execute = context?.executeSlashCommandsWithOptions;
-    if (typeof execute !== 'function') return false;
+    if (conversation && typeof execute !== 'function') return false;
     event.preventDefault();
     event.stopImmediatePropagation();
+    if (conversation && conversationCommandPending) {
+        notify('A Conversation command is already running.', 'warning');
+        return true;
+    }
     clearCommandInput(input);
-    const recover = error => {
+    const recover = (error, message) => {
         if (error) console.error('Terminal UI could not execute the command', error);
         const restored = input.value === '';
         if (restored) {
@@ -1161,41 +1236,56 @@ function executeOwnedCommand(event, input) {
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.focus?.();
         }
-        notify(restored ? 'Command failed. Your command was restored.' : 'Command failed. Your current input was kept.', 'error');
+        notify(message ?? (restored ? 'Command failed. Your command was restored.' : 'Command failed. Your current input was kept.'), error || !message ? 'error' : 'warning');
     };
-    Promise.resolve(execute.call(context, command, {
-        handleParserErrors: false,
-        handleExecutionErrors: true,
-        source: MODULE,
-    })).then(result => {
-        if (result?.isError) recover();
-    }).catch(recover);
+    if (conversation) conversationCommandPending = true;
+    Promise.resolve().then(() => conversation
+        ? execute.call(context, command, {
+            handleParserErrors: false,
+            handleExecutionErrors: true,
+            source: MODULE,
+        })
+        : executeMainCommand(context, command)
+    ).then(result => {
+        if (result === null) recover(null, 'Another command is already running. Your command was restored.');
+        else if (result?.isError) recover();
+    }).catch(recover).finally(() => {
+        if (conversation) conversationCommandPending = false;
+    });
     return true;
 }
 
 function onDocumentClick(event) {
     globalThis.setTimeout?.(syncDrawerDisclosure, 0);
-    const details = event.target?.closest?.('.sbterm-status-details');
-    if (details) {
-        if (details.dataset.action === 'connect') {
-            void openDestination('open-api');
+    if (event.type === 'click') {
+        const details = event.target?.closest?.('.sbterm-status-details');
+        if (details) {
+            if (details.dataset.action === 'connect') {
+                void openDestination('open-api');
+                return;
+            }
+            const status = document.getElementById('sbterm-statusline');
+            if (status?.textContent || status?.title) notify(status.textContent || status.title);
             return;
         }
-        const status = document.getElementById('sbterm-statusline');
-        if (status?.textContent || status?.title) notify(status.textContent || status.title);
-        return;
+        if (event.target?.closest?.('.sbterm-mascot-button')) {
+            void openQuickAccess();
+            return;
+        }
+        if (!nativeHomeClick && document.body?.classList.contains('sbterm-minimal') && event.target?.closest?.('#sb-home-toggle')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            void showHomepage();
+            return;
+        }
     }
-    if (event.type === 'click' && event.target?.closest?.('.sbterm-mascot-button')) {
-        void openQuickAccess();
-        return;
+    const sendButton = event.target?.closest?.('#send_but') ?? event.target?.closest?.('#gg_simple_send_button');
+    if (!sendButton) return;
+    if (event.type === 'touchend') {
+        const touch = event.changedTouches?.[0];
+        const released = touch && document.elementFromPoint?.(touch.clientX, touch.clientY);
+        if (!released || !sendButton.contains?.(released)) return;
     }
-    if (event.type === 'click' && !nativeHomeClick && document.body?.classList.contains('sbterm-minimal') && event.target?.closest?.('#sb-home-toggle')) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        void showHomepage();
-        return;
-    }
-    if (!event.target?.closest?.('#send_but') && !event.target?.closest?.('#gg_simple_send_button')) return;
     const input = document.getElementById('send_textarea');
     if (input) executeOwnedCommand(event, input);
 }
@@ -1208,9 +1298,8 @@ function onConversationSubmit(event) {
 }
 
 function onCommandKeydown(event) {
-    const conversation = event.target?.id === 'sb_conversation_input';
-    if (!conversation && event.target?.id !== 'send_textarea') return;
-    if (conversation && event.key === 'Enter' && conversationAutocompleteInput === event.target && conversationAutocomplete?.isActive) {
+    if (event.target?.id !== 'sb_conversation_input') return;
+    if (event.key === 'Enter' && conversationAutocompleteInput === event.target && conversationAutocomplete?.isActive) {
         void conversationAutocomplete.handleKeyDown(event);
         if (event.defaultPrevented) return;
     }
@@ -1218,7 +1307,24 @@ function onCommandKeydown(event) {
     if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
     if (!ctx()?.shouldSendOnEnter?.()) return;
     executeOwnedCommand(event, event.target);
-    if (conversation) queueConversationStatusRefresh();
+    queueConversationStatusRefresh();
+}
+
+function onMainCommandKeydown(event) {
+    if (event.defaultPrevented || event.target?.id !== 'send_textarea' || event.key !== 'Enter' || event.isComposing) return;
+    if (event.ctrlKey) {
+        if (!event.shiftKey && !event.altKey && !event.metaKey && isAssistantTrapCommand(event.target.value, event.target)) {
+            executeOwnedCommand(event, event.target);
+        }
+        return;
+    }
+    if (event.shiftKey || event.altKey || event.metaKey || !ctx()?.shouldSendOnEnter?.()) return;
+    executeOwnedCommand(event, event.target);
+}
+
+function bindMainCommandInput() {
+    const input = typeof document === 'undefined' ? null : document.getElementById('send_textarea');
+    if (input && domController) input.addEventListener('keydown', onMainCommandKeydown, { signal: domController.signal });
 }
 
 function observeConversationTimeline() {
@@ -1353,6 +1459,7 @@ function bindDomEvents() {
     document.addEventListener('touchend', onDocumentClick, options);
     document.addEventListener('submit', onConversationSubmit, options);
     document.addEventListener('keydown', onCommandKeydown, options);
+    bindMainCommandInput();
     globalThis.addEventListener?.('sb:conversation-workspace-state-changed', queueConversationStatusRefresh, { signal: domController.signal });
     globalThis.addEventListener?.('resize', alignHomeAutocomplete, { signal: domController.signal });
     globalThis.addEventListener?.('resize', alignChatBars, { signal: domController.signal });
@@ -1393,9 +1500,10 @@ function bindHostEvents() {
 
     bind('APP_READY', ready);
     bind('CHAT_CHANGED', chatChanged);
-    for (const name of ['MAIN_API_CHANGED', 'ONLINE_STATUS_CHANGED', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED', 'SETTINGS_UPDATED']) {
+    for (const name of ['MAIN_API_CHANGED', 'ONLINE_STATUS_CHANGED', 'CHATCOMPLETION_SOURCE_CHANGED', 'CHATCOMPLETION_MODEL_CHANGED']) {
         bind(name, invalidate);
     }
+    bind('SETTINGS_UPDATED', rerender);
     for (const name of ['CHAT_RENAMED', 'CHARACTER_RENAMED', 'GROUP_UPDATED', 'GENERATION_AFTER_COMMANDS', 'GENERATION_ENDED', 'GENERATION_STOPPED']) {
         bind(name, rerender);
     }

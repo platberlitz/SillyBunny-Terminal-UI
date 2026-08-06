@@ -113,15 +113,27 @@ class FakeElement {
         this.attributes.set(name, String(value));
     }
 
-    addEventListener(type, handler) {
+    addEventListener(type, handler, options = {}) {
+        if (options.signal?.aborted) return;
         const listeners = this.listeners.get(type) ?? new Set();
         listeners.add(handler);
         this.listeners.set(type, listeners);
+        options.signal?.addEventListener('abort', () => listeners.delete(handler), { once: true });
     }
 
     dispatchEvent(event) {
-        for (const handler of this.listeners.get(event.type) ?? []) handler.call(this, event);
-        return true;
+        if (!event.target) {
+            try {
+                Object.defineProperty(event, 'target', { configurable: true, value: this });
+            } catch {
+                // Native Event targets are optional for these focused fakes.
+            }
+        }
+        for (const handler of [...(this.listeners.get(event.type) ?? [])]) {
+            handler.call(this, event);
+            if (event.immediatePropagationStopped) break;
+        }
+        return !event.defaultPrevented;
     }
 
     click() {
@@ -132,6 +144,20 @@ class FakeElement {
         this.focused = true;
     }
 
+    contains(node) {
+        return node === this || this.children.some(child => child.contains(node));
+    }
+
+    closest(selector) {
+        let node = this;
+        while (node) {
+            if (selector.startsWith('#') && node.id === selector.slice(1)) return node;
+            if (selector.startsWith('.') && node.classList.contains(selector.slice(1))) return node;
+            node = node.parentElement;
+        }
+        return null;
+    }
+
     querySelector() {
         return null;
     }
@@ -140,7 +166,9 @@ class FakeElement {
 class FakeDocument {
     constructor() {
         this.body = new FakeElement('body');
+        this.head = new FakeElement('head');
         this.listeners = new Map();
+        this.pointElement = null;
     }
 
     createElement(tagName) {
@@ -156,7 +184,7 @@ class FakeDocument {
             }
             return null;
         };
-        return visit(this.body);
+        return visit(this.body) ?? visit(this.head);
     }
 
     querySelector(selector) {
@@ -166,6 +194,9 @@ class FakeDocument {
         if (selector === '#sheld[data-sb-conversation-mode=on]') {
             const sheld = this.getElementById('sheld');
             return sheld?.dataset.sbConversationMode === 'on' ? sheld : null;
+        }
+        if (selector === '#sb_conversation_header [data-sb-conversation-name]') {
+            return this.getElementById('sb-conversation-name');
         }
         if (selector.startsWith('#')) {
             return this.getElementById(selector.slice(1));
@@ -186,6 +217,7 @@ class FakeDocument {
     }
 
     addEventListener(type, handler, options = {}) {
+        if (options.signal?.aborted) return;
         const listeners = this.listeners.get(type) ?? new Set();
         listeners.add(handler);
         this.listeners.set(type, listeners);
@@ -198,7 +230,14 @@ class FakeDocument {
 
     dispatch(type, event) {
         event.type = type;
-        for (const handler of this.listeners.get(type) ?? []) handler(event);
+        for (const handler of [...(this.listeners.get(type) ?? [])]) {
+            handler(event);
+            if (event.immediatePropagationStopped) break;
+        }
+    }
+
+    elementFromPoint() {
+        return this.pointElement;
     }
 }
 
@@ -265,12 +304,16 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     formSheld.id = 'form_sheld';
     const sendForm = new FakeElement('div');
     sendForm.id = 'send_form';
+    const sendButton = new FakeElement('button');
+    sendButton.id = 'send_but';
     const guidedGenerations = new FakeElement('div');
     guidedGenerations.id = 'gg-action-button-container';
+    const simpleSendButton = new FakeElement('button');
+    simpleSendButton.id = 'gg_simple_send_button';
     const quickReplies = new FakeElement('div');
     quickReplies.id = 'qr--bar';
-    guidedGenerations.appendChild(quickReplies);
-    sendForm.append(sendInput, guidedGenerations);
+    guidedGenerations.append(quickReplies, simpleSendButton);
+    sendForm.append(sendInput, sendButton, guidedGenerations);
     formSheld.appendChild(sendForm);
     const bottomBar = new FakeElement('div');
     bottomBar.id = 'sb-bottom-chat-bar';
@@ -281,8 +324,22 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     home.click = () => homeClicks += 1;
     const sheld = new FakeElement('main');
     sheld.id = 'sheld';
-    sheld.append(chat, formSheld, conversationForm);
+    const conversationHeader = new FakeElement('header');
+    conversationHeader.id = 'sb_conversation_header';
+    const conversationName = new FakeElement('span');
+    conversationName.id = 'sb-conversation-name';
+    conversationName.textContent = 'Conversation Friend';
+    conversationHeader.appendChild(conversationName);
+    sheld.append(chat, formSheld, conversationForm, conversationHeader);
     document.body.append(settingsHost, topbar, sheld, bottomBar, home);
+
+    const moonlitEnabled = new FakeElement('style');
+    moonlitEnabled.id = 'MoonlitEchosTheme-style';
+    moonlitEnabled.disabled = false;
+    const moonlitDisabled = new FakeElement('style');
+    moonlitDisabled.id = 'MoonlitEchosTheme-extension';
+    moonlitDisabled.disabled = true;
+    document.head.append(moonlitEnabled, moonlitDisabled);
 
     const eventSource = new FakeEventSource();
     const eventTypes = Object.fromEntries([
@@ -309,6 +366,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
 
     let saves = 0;
     const executedCommands = [];
+    const mainCommandOptions = [];
     let conversationAutocomplete = null;
     let conversationAutocompleteBindings = 0;
     const context = {
@@ -331,8 +389,14 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
         getCurrentChatId: () => 'Test Chat',
         getChatCompletionModel: () => 'test-model',
         substituteParams: () => '32768',
+        getTokenCountAsync: async () => 11800,
         shouldSendOnEnter: () => true,
         executeSlashCommandsWithOptions: async value => executedCommands.push(value),
+        executeSlashCommandsOnChatInput: async (value, options) => {
+            executedCommands.push(value);
+            mainCommandOptions.push(options);
+            return { isError: false };
+        },
         setSlashCommandAutoComplete: async input => {
             conversationAutocompleteBindings += 1;
             conversationAutocomplete = {
@@ -357,6 +421,20 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     globalThis.document = document;
     globalThis.SillyTavern = { getContext: () => context };
     globalThis.SillyBunnyShell = { openTab: (...args) => shellCalls.push(args) };
+    const globalListeners = new Map();
+    globalThis.addEventListener = (type, handler, options = {}) => {
+        if (options.signal?.aborted) return;
+        const listeners = globalListeners.get(type) ?? new Set();
+        listeners.add(handler);
+        globalListeners.set(type, listeners);
+        options.signal?.addEventListener('abort', () => listeners.delete(handler), { once: true });
+    };
+    globalThis.removeEventListener = (type, handler) => globalListeners.get(type)?.delete(handler);
+    globalThis.dispatchEvent = event => {
+        if (event.type === 'sb:close-conversation-workspace') delete sheld.dataset.sbConversationMode;
+        for (const handler of [...(globalListeners.get(event.type) ?? [])]) handler(event);
+        return true;
+    };
     const storage = new Map([['sb-bottom-chat-bar-visible', 'false']]);
     globalThis.localStorage = {
         getItem: key => storage.get(key) ?? null,
@@ -380,6 +458,13 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     let toastError = 0;
     globalThis.toastr = { info() { toastInfo += 1; }, success() {}, warning() {}, error() { toastError += 1; } };
 
+    let nativeAutocompleteActive = false;
+    sendInput.addEventListener('keydown', event => {
+        if (!nativeAutocompleteActive || event.key !== 'Enter') return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    });
+
     const extension = await import('../index.js');
     extension.activate();
     await Promise.resolve();
@@ -399,7 +484,16 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(document.listenerCount('keydown'), 1);
     assert.equal(document.listenerCount('click'), 1);
     assert.equal(document.listenerCount('touchend'), 1, 'iOS sends from touchend and suppresses the click, so touchend must be intercepted too');
+    assert.equal(sendInput.listeners.get('keydown')?.size, 2, 'main interception must bind after native autocomplete on the textarea');
     assert(bottomBar.classList.contains('displayNone'), 'chat bars stay hidden by default until the user opts in');
+    assert.equal(moonlitEnabled.disabled, true);
+    assert.equal(moonlitDisabled.disabled, true);
+    const dynamicMoonlit = new FakeElement('style');
+    dynamicMoonlit.id = 'moonlit-raw-css';
+    dynamicMoonlit.disabled = false;
+    document.head.appendChild(dynamicMoonlit);
+    mutationObservers.find(observer => observer.target === document.head).callback([]);
+    assert.equal(dynamicMoonlit.disabled, true, 'late Moonlit styles must also be suppressed');
     assert(document.getElementById('sbterm-settings-drawer'));
     assert(document.getElementById('sbterm-banner'));
     assert(document.getElementById('sbterm-statusline'));
@@ -432,11 +526,12 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     const glossary = document.querySelector('.sbterm-command-glossary');
     assert(glossary, 'terminal Home glossary must render');
     assert.equal(glossary.tagName, 'SECTION');
+    assert.equal(glossary.tabIndex, 0, 'the scrolling command reference must be keyboard reachable');
     assert.equal(glossary.attributes.get('aria-labelledby'), 'sbterm-command-glossary-title');
     assert.equal(document.querySelector('.sbterm-command-glossary-title')?.tagName, 'H2');
     const glossaryList = document.querySelector('.sbterm-command-glossary-list');
     assert.equal(glossaryList?.tagName, 'UL');
-    assert.equal(glossaryList?.children.length, 35, 'Home should expose the complete terminal command reference');
+    assert.equal(glossaryList?.children.length, 38, 'Home should expose the complete terminal command reference');
     assert(glossaryList.children.every(item => item.tagName === 'LI'));
     assert.equal(glossaryList.children[0].children[0].textContent, '/sbterm');
     assert.equal(glossaryList.children[1].children[0].textContent, '/home');
@@ -447,6 +542,9 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     };
     collectText(glossary);
     assert(glossaryTexts.includes('/open-api'));
+    assert(glossaryTexts.includes('/open-homepage'));
+    assert(glossaryTexts.includes('/open-conversation'));
+    assert(glossaryTexts.includes('/open-roleplay'));
     assert(glossaryTexts.includes('/hide-bottom-bar'));
     assert(!glossaryTexts.some(text => text.includes('Open open')), 'glossary help must not double the open- prefix');
 
@@ -457,9 +555,8 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(status.textContent.startsWith('run:idle | chat:'), 'decisive run state must survive status truncation');
     assert.equal(statusDetails?.tagName, 'BUTTON');
     assert.equal(statusDetails?.dataset.action, 'status');
-    document.dispatch('click', {
-        target: { closest: selector => selector === '.sbterm-status-details' ? statusDetails : null },
-    });
+    document.dispatch('touchend', { target: statusDetails, changedTouches: [{ clientX: 1, clientY: 1 }] });
+    document.dispatch('click', { target: statusDetails });
     assert.equal(toastInfo, 1, 'the details button must expose the full diagnostic as a toast');
 
     context.onlineStatus = 'no_connection';
@@ -474,6 +571,17 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     context.onlineStatus = 'connected';
     await eventSource.emit('ONLINE_STATUS_CHANGED');
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+
+    await eventSource.emit('GENERATE_AFTER_DATA', { prompt: 'assembled prompt' }, false);
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.match(status.textContent, /prompt:11\.8k\/32\.8k$/, 'prompt diagnostics must retain one decimal');
+    const promptStatus = status.textContent;
+    await eventSource.emit('SETTINGS_UPDATED');
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.equal(status.textContent, promptStatus, 'unrelated settings saves must retain the last prompt count');
+    await eventSource.emit('MAIN_API_CHANGED');
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.match(status.textContent, /prompt:-\/32\.8k$/, 'connection changes must invalidate the old prompt count');
 
     document.dispatch('click', {
         target: { closest: selector => selector === '.sbterm-mascot-button' ? mascotButton : null },
@@ -498,7 +606,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
         'open-workspace', 'open-presets', 'open-api', 'open-model', 'open-sampling', 'open-formatting', 'open-agents',
         'open-customize', 'open-settings', 'open-extensions', 'open-background', 'open-server', 'open-logs', 'open-characters',
         'open-groups', 'open-editor', 'open-world-info', 'open-persona', 'open-import', 'search', 'chat-tools', 'open-chats', 'appearance',
-        'open-homepage', 'hide-topbar', 'open-nav-topbar', 'hide-home', 'hide-avatar', 'show-avatar',
+        'open-homepage', 'open-conversation', 'open-roleplay', 'hide-topbar', 'open-nav-topbar', 'hide-home', 'hide-avatar', 'show-avatar',
         'show-chat-topbar', 'hide-chat-topbar', 'show-bottom-bar', 'hide-bottom-bar',
     ]) {
         assert(parser.commands[name], `expected /${name} to be registered`);
@@ -506,11 +614,68 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(parser.commands.api, apiCommand, 'native /api must be untouched');
     assert.equal(parser.commands.model, modelCommand, 'native /model must be untouched');
 
+    assert.equal(await command.callback({}, 'ui full'), 'full');
+    for (const className of ['sbterm-minimal', 'sbterm-topbar-hidden', 'sbterm-avatar-hidden', 'sbterm-chat-topbar-hidden', 'sbterm-bottom-bar-hidden']) {
+        assert(!document.body.classList.contains(className), `Full Chrome must remove ${className}`);
+    }
+    assert(!bottomBar.classList.contains('displayNone'), 'Full Chrome must reveal the native bottom bar');
+    assert(!document.getElementById('sbterm-chat-topbar'), 'Full Chrome must remove the replacement toolbar');
+    assert.equal(quickReplies.parentElement, guidedGenerations);
+    assert.equal(guidedGenerations.parentElement, sendForm);
+    assert.equal(await command.callback({}, 'ui terminal'), 'terminal');
+    assert(document.body.classList.contains('sbterm-minimal'));
+    assert(document.body.classList.contains('sbterm-topbar-hidden'));
+    assert(document.body.classList.contains('sbterm-chat-topbar-hidden'));
+    assert(document.body.classList.contains('sbterm-bottom-bar-hidden'));
+    assert(bottomBar.classList.contains('displayNone'));
+    assert.equal(quickReplies.parentElement, document.getElementById('sbterm-chat-topbar'));
+    assert.equal(guidedGenerations.parentElement, document.getElementById('sbterm-chat-topbar'));
+
+    const enterEvent = overrides => ({
+        type: 'keydown',
+        target: sendInput,
+        key: 'Enter',
+        defaultPrevented: false,
+        preventDefault() { this.defaultPrevented = true; },
+        stopImmediatePropagation() { this.immediatePropagationStopped = true; },
+        ...overrides,
+    });
+    nativeAutocompleteActive = true;
+    sendInput.value = '/sbterm p';
+    const autocompleteEnter = enterEvent();
+    sendInput.dispatchEvent(autocompleteEnter);
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.equal(autocompleteEnter.defaultPrevented, true);
+    assert.equal(sendInput.value, '/sbterm p', 'native autocomplete must consume Enter before command execution');
+    assert.deepEqual(executedCommands, []);
+
+    nativeAutocompleteActive = false;
+    sendInput.value = '/open-api';
+    const commandEnter = enterEvent();
+    sendInput.dispatchEvent(commandEnter);
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.equal(commandEnter.defaultPrevented, true);
+    assert.deepEqual(executedCommands, ['/open-api']);
+    assert.deepEqual(mainCommandOptions.at(-1), { clearChatInput: false, source: 'SillyBunny-Terminal-UI' });
+
+    const characterBeforeCtrlEnter = context.characterId;
+    context.characterId = undefined;
+    sendInput.value = '/api';
+    const ctrlEnter = enterEvent({ ctrlKey: true });
+    sendInput.dispatchEvent(ctrlEnter);
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.equal(ctrlEnter.defaultPrevented, true, 'Ctrl+Enter must not bypass the Assistant-chat trap');
+    assert.equal(executedCommands.at(-1), '/api');
+    context.characterId = characterBeforeCtrlEnter;
+    sendInput.value = '';
+    executedCommands.length = 0;
+    mainCommandOptions.length = 0;
+
     sendInput.value = '/sbterm ui full';
     let prevented = false;
     let stopped = false;
     document.dispatch('click', {
-        target: { closest: selector => selector === '#gg_simple_send_button' },
+        target: simpleSendButton,
         preventDefault: () => prevented = true,
         stopImmediatePropagation: () => stopped = true,
     });
@@ -522,7 +687,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
 
     sendInput.value = '/home';
     document.dispatch('click', {
-        target: { closest: selector => selector === '#send_but' },
+        target: sendButton,
         preventDefault() {},
         stopImmediatePropagation() {},
     });
@@ -532,7 +697,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     sendInput.value = '/api';
     let nativeApiPrevented = false;
     document.dispatch('click', {
-        target: { closest: selector => selector === '#send_but' },
+        target: sendButton,
         preventDefault: () => nativeApiPrevented = true,
         stopImmediatePropagation() {},
     });
@@ -545,9 +710,23 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     // A tap on iOS arrives as touchend; the host sends from there and eats the
     // click, so an owned command must be intercepted on touchend as well.
     sendInput.value = '/open-chats';
+    document.pointElement = home;
+    let canceledTouchPrevented = false;
+    document.dispatch('touchend', {
+        target: sendButton,
+        changedTouches: [{ clientX: 1, clientY: 1 }],
+        preventDefault: () => canceledTouchPrevented = true,
+        stopImmediatePropagation() {},
+    });
+    await Promise.resolve();
+    assert.equal(canceledTouchPrevented, false, 'sliding off the send button must cancel the tap');
+    assert.equal(sendInput.value, '/open-chats');
+
+    document.pointElement = sendButton;
     let touchPrevented = false;
     document.dispatch('touchend', {
-        target: { closest: selector => selector === '#send_but' },
+        target: sendButton,
+        changedTouches: [{ clientX: 1, clientY: 1 }],
         preventDefault: () => touchPrevented = true,
         stopImmediatePropagation() {},
     });
@@ -564,7 +743,8 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     sendInput.value = '/api';
     let trapPrevented = false;
     document.dispatch('touchend', {
-        target: { closest: selector => selector === '#send_but' },
+        target: sendButton,
+        changedTouches: [{ clientX: 1, clientY: 1 }],
         preventDefault: () => trapPrevented = true,
         stopImmediatePropagation() {},
     });
@@ -584,7 +764,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(!document.body.classList.contains('sbterm-home-visible'));
 
     document.dispatch('click', {
-        target: { closest: selector => selector === '#sb-home-toggle' },
+        target: home,
         preventDefault() {},
         stopImmediatePropagation() {},
     });
@@ -633,54 +813,66 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
 
     sendInput.value = '/open-extensions';
     document.dispatch('click', {
-        target: { closest: selector => selector === '#send_but' },
+        target: sendButton,
         preventDefault() {},
         stopImmediatePropagation() {},
     });
     await Promise.resolve();
     assert.deepEqual(executedCommands.at(-1), '/open-extensions');
 
-    const executeCommands = context.executeSlashCommandsWithOptions;
-    context.executeSlashCommandsWithOptions = async () => { throw new Error('test rejection'); };
+    const executeMainCommands = context.executeSlashCommandsOnChatInput;
+    context.executeSlashCommandsOnChatInput = async () => { throw new Error('test rejection'); };
     sendInput.value = '/open-api';
     sendInput.focused = false;
     const consoleError = console.error;
     console.error = () => {};
     try {
         document.dispatch('click', {
-            target: { closest: selector => selector === '#send_but' },
+            target: sendButton,
             preventDefault() {},
             stopImmediatePropagation() {},
         });
         await new Promise(resolve => globalThis.setTimeout(resolve, 0));
     } finally {
         console.error = consoleError;
-        context.executeSlashCommandsWithOptions = executeCommands;
+        context.executeSlashCommandsOnChatInput = executeMainCommands;
     }
     assert.equal(sendInput.value, '/open-api', 'a rejected command must be restored');
     assert.equal(sendInput.focused, true);
     assert.equal(toastError, 1);
     sendInput.value = '';
 
-    context.executeSlashCommandsWithOptions = async () => ({ isError: true });
+    context.executeSlashCommandsOnChatInput = async () => ({ isError: true });
     sendInput.value = '/open-api';
     sendInput.focused = false;
     document.dispatch('click', {
-        target: { closest: selector => selector === '#send_but' },
+        target: sendButton,
         preventDefault() {},
         stopImmediatePropagation() {},
     });
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
-    context.executeSlashCommandsWithOptions = executeCommands;
+    context.executeSlashCommandsOnChatInput = executeMainCommands;
     assert.equal(sendInput.value, '/open-api', 'a resolved command error must be restored');
     assert.equal(sendInput.focused, true);
     assert.equal(toastError, 2);
     sendInput.value = '';
 
+    context.onlineStatus = 'no_connection';
+    context.extensionSettings.sillybunny_conversation = { settings: { connection_profile: 'Scoped' } };
+    context.extensionSettings.connectionManager = { profiles: [{ id: 'scoped', name: 'Scoped' }] };
+    context.ConnectionManagerRequestService = { sendRequest() {} };
     sheld.dataset.sbConversationMode = 'on';
+    globalThis.dispatchEvent(new Event('sb:conversation-workspace-state-changed'));
     const bodyObserver = mutationObservers.find(observer => observer.target === document.body);
     bodyObserver.callback([]);
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.equal(status.textContent, 'run:idle | dm:Conversation Friend | api:profile:Scoped | prompt:n/a');
+    context.extensionSettings.sillybunny_conversation.settings.connection_profile = 'Missing';
+    await eventSource.emit('SETTINGS_UPDATED');
+    await new Promise(resolve => globalThis.setTimeout(resolve, 0));
+    assert.match(status.textContent, /^run:disconnected \| dm:Conversation Friend \| api:/);
+    assert.match(status.textContent, /prompt:n\/a$/);
     assert.equal(conversationAutocompleteBindings, 1, 'Conversation Mode must receive native slash previews');
     assert.equal(conversationAutocomplete.input, conversationInput);
     bodyObserver.callback([]);
@@ -711,10 +903,27 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
         assert.equal(conversationPrevented, intercepted, `${value} interception mismatch`);
     }
     assert.deepEqual(executedCommands.at(-1), '/api');
-    delete sheld.dataset.sbConversationMode;
+
+    sendInput.focused = false;
+    assert.equal(await parser.commands['open-roleplay'].callback(), 'roleplay');
+    assert(!sheld.dataset.sbConversationMode, 'roleplay must close the Conversation workspace');
+    assert.equal(sendInput.focused, true);
+
+    sheld.dataset.sbConversationMode = 'on';
+    assert.equal(await homeCommand.callback(), 'home');
+    assert(!sheld.dataset.sbConversationMode, '/home must close the Conversation workspace');
+
+    await parser.commands['open-homepage'].callback();
+    assert(document.body.classList.contains('sbterm-home-visible'));
+    sheld.dataset.sbConversationMode = 'on';
+    assert.equal(await parser.commands['hide-home'].callback(), 'home');
+    assert(!sheld.dataset.sbConversationMode, '/hide-home must close the Conversation workspace');
+    assert(!document.body.classList.contains('sbterm-home-visible'));
+
     bodyObserver.callback([]);
     await new Promise(resolve => globalThis.setTimeout(resolve, 0));
     assert.equal(conversationAutocomplete.hidden, true, 'closing Conversation Mode must hide its slash preview');
+    context.onlineStatus = 'connected';
 
     const listenerCount = eventSource.totalListeners();
     extension.activate();
@@ -747,6 +956,9 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(!document.querySelector('.sbterm-command-glossary'), '/sbterm off must remove the injected Home UI');
     assert(!document.getElementById('sbterm-chat-topbar'));
     assert(bottomBar.classList.contains('displayNone'), '/sbterm off must restore the host bottom-bar state');
+    assert.equal(moonlitEnabled.disabled, false);
+    assert.equal(moonlitDisabled.disabled, true, 'pre-disabled Moonlit styles must stay disabled after restoration');
+    assert.equal(dynamicMoonlit.disabled, false);
     assert.equal(quickReplies.parentElement, guidedGenerations, 'Quick Replies must return to its latest host parent');
     assert.equal(guidedGenerations.parentElement, sendForm, 'Guided Generations must return to the composer');
     assert(mutationObservers.filter(observer => observer.observed).every(observer => observer.disconnected), '/sbterm off must disconnect UI observers');
@@ -760,8 +972,11 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(document.body.classList.contains('sbterm'));
     assert.equal(document.getElementById('sbterm-banner').hidden, false);
     assert(document.querySelector('.sbterm-command-glossary'), '/sbterm on must rebuild the injected Home UI');
-    assert(document.getElementById('sbterm-chat-topbar'));
+    assert(!document.getElementById('sbterm-chat-topbar'), 'Full Chrome must keep native toolbar placement after re-enable');
     assert(!bottomBar.classList.contains('displayNone'));
+    assert.equal(moonlitEnabled.disabled, true);
+    assert.equal(moonlitDisabled.disabled, true);
+    assert.equal(dynamicMoonlit.disabled, true);
 
     const foreignCommand = { name: 'sbterm' };
     const foreignHomeCommand = { name: 'home' };
@@ -789,10 +1004,14 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(!document.getElementById('sbterm-chat-topbar'));
     assert(!document.querySelector('.sbterm-command-glossary'));
     assert(!bottomBar.classList.contains('displayNone'), 'extension disable must honor newer host bottom-bar state');
+    assert.equal(moonlitEnabled.disabled, false);
+    assert.equal(moonlitDisabled.disabled, true);
+    assert.equal(dynamicMoonlit.disabled, false);
     assert.equal(document.listenerCount('submit'), 0);
     assert.equal(document.listenerCount('keydown'), 0);
     assert.equal(document.listenerCount('click'), 0);
     assert.equal(document.listenerCount('touchend'), 0);
+    assert.equal(sendInput.listeners.get('keydown')?.size, 1, 'disable must remove only the extension textarea listener');
     assert.equal(eventSource.totalListeners(), 0);
 
     delete parser.commands.sbterm;
@@ -832,6 +1051,15 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.match(css, /\.sbterm-command-glossary[^}]+max-block-size:\s*min\(50dvh, 28rem\)[^}]+overflow-y:\s*auto;/s, 'the complete Home reference must scroll independently');
     assert.match(css, /\.sbterm-command-glossary-list[^}]+grid-template-columns:\s*minmax\(0, 1fr\)/s, 'Home commands must remain one column so descriptions cannot overlap');
     assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #bg1\s*\{[^}]+opacity:\s*var\(--customCSS-bg-opacity, 1\);/s, 'Terminal Home must retain the configured host backdrop');
+    assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #top-bar\s*\{[^}]+background-color:\s*var\(--sbterm-bg\) !important;/s, 'Home text chrome needs an opaque contrast backing');
+    assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block:not\(:has\(\.edit_textarea, \.reasoning_edit_textarea\)\)\s*\{[^}]+display:\s*grid !important;/s, 'message editors must opt out of the inline user-message grid');
+    assert.match(css, /--ac-style-color-selectedText:\s*var\(--sbterm-selected-fg\);/, 'selected autocomplete text must use the on-accent token');
+    assert.match(css, /body\.sbterm\.sbterm-minimal #gg_simple_send_button\s*\{[^}]+display:\s*none !important;/s, 'duplicate Simple Send suppression must be terminal-density only');
+    assert.match(css, /#sb_conversation_pals_rail\s*\{[^}]+visibility:\s*hidden;[^}]+pointer-events:\s*none;/s, 'closed off-screen rails must leave keyboard navigation');
+    assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_buttons\s*\{[^}]+position:\s*static;[^}]+flex-wrap:\s*wrap;/s, 'touch message actions must not overlay message text');
+    assert.match(css, /--sb-bottom-chat-mobile-button-size:\s*var\(--sb-mobile-touch-target, 44px\);/, 'bottom-bar controls must inherit the 44px touch target');
+    assert.match(css, /@media \(forced-colors: active\)\s*\{[^}]+outline:\s*2px solid CanvasText !important;/s, 'system focus colors belong only to forced-colors mode');
+    assert.doesNotMatch(css, /@media \(forced-colors: active\), \(prefers-contrast: more\)\s*\{[^}]+CanvasText/s, 'ordinary increased contrast must keep palette-aware focus rings');
     const palettes = ['phosphor-green', 'terminal-amber', 'gameboy-dmg', 'teletext', 'chrome-98', 'dos-cobalt', 'paper-tape', 'vfd-cyan', 'dracula', 'gruvbox', 'solarized-dark', 'nord'];
     const luminance = hex => {
         const channels = hex.match(/[0-9a-f]{2}/gi).map(value => {

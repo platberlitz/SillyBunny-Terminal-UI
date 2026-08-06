@@ -396,10 +396,11 @@ body.sbterm ::-webkit-scrollbar-track {
    strip the UA button chrome and let the host's .inline-drawer-toggle layout. */
 body.sbterm #sbterm-settings-drawer > .inline-drawer-toggle {
     width: 100%;
+    min-block-size: var(--sb-mobile-touch-target, 44px);
     text-align: start;
     background: none;
     border: 0;
-    padding: 0;
+    padding: 8px 0;
     cursor: pointer;
     font: inherit;
     color: inherit;
@@ -434,16 +435,21 @@ body.sbterm.sbterm-topbar-hidden #sb-topbar-inner > .sb-topbar-group {
     display: none !important;
 }
 
-body.sbterm #sb-topbar-title {
+:is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) #sb-topbar-title {
     display: none !important;
 }
 
-body.sbterm .sb-topbar-brand {
+:is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) .sb-topbar-brand {
     min-inline-size: 0;
     display: flex !important;
     align-items: stretch;
     inline-size: 100%;
     max-inline-size: none;
+}
+
+body.sbterm:not(.sbterm-minimal):not(:has(#chat .welcomePanel)) #sbterm-banner,
+body.sbterm:not(.sbterm-minimal).sbterm-home-visible #sbterm-banner {
+    display: none !important;
 }
 
 body.sbterm .sbterm-status-row {
@@ -589,14 +595,14 @@ body.sbterm #chat .ch_name::after {
 
 /* ponytail: restore the Whisper and Echo avatar banners the kill list above
    silenced — Whisper draws it on .mes::before, Echo on .mes_text::before */
-body.sbterm.whisperstyle #chat .mes::before {
+body.sbterm:not(.sbterm-avatar-hidden).whisperstyle #chat .mes::before {
     content: "" !important;
     background: var(--mes-avatar-url, var(--sb-message-avatar)) var(--customWhisperAvatarAlign, center)/cover no-repeat !important;
 }
-body.sbterm.whisperstyle #chat .mes {
+body.sbterm:not(.sbterm-avatar-hidden).whisperstyle #chat .mes {
     padding-top: 40px !important;
 }
-body.sbterm.echostyle #chat .mes_text::before {
+body.sbterm:not(.sbterm-avatar-hidden).echostyle #chat .mes_text::before {
     content: "" !important;
     background: var(--mes-avatar-url, var(--sb-message-avatar)) center/cover no-repeat fixed !important;
 }
@@ -716,10 +722,10 @@ body.sbterm #sheld:has(#chat .welcomePanel) :is(#sbterm-chat-topbar, #sb-bottom-
     /* Keep desktop transcript text beside the In-Chat Agents companion panel.
        On narrow screens the panel overlays instead of crushing the transcript. */
     body.sbterm:has(#ica--tracker-panel.is-open[data-edge='right']) #chat {
-        padding-inline-end: calc(min(420px, 40vw) + 12px);
+        padding-right: calc(min(420px, 40vw) + 12px);
     }
     body.sbterm:has(#ica--tracker-panel.is-open[data-edge='left']) #chat {
-        padding-inline-start: calc(min(420px, 40vw) + 12px);
+        padding-left: calc(min(420px, 40vw) + 12px);
     }
 }
 
@@ -1190,7 +1196,7 @@ body.sbterm {
     --ac-style-color-matchedBackground: transparent;
     --ac-style-color-matchedText: var(--sbterm-accent2);
     --ac-style-color-selectedBackground: var(--sbterm-accent);
-    --ac-style-color-selectedText: var(--sbterm-bg);
+    --ac-style-color-selectedText: var(--sbterm-selected-fg);
     --ac-style-color-notSelectableBackground: var(--sbterm-bg-alt);
     --ac-style-color-notSelectableText: var(--sbterm-fg-dim);
     --ac-style-color-hoveredBackground: var(--sbterm-bg-alt);
@@ -1231,7 +1237,7 @@ body.sbterm .autoComplete-detailsWrap:not(.isFloating) {
 
 /* Guided Generations' simple-send duplicates the composer's send button;
    two paper planes on one screen read as two different actions. */
-body.sbterm #gg_simple_send_button {
+body.sbterm.sbterm-minimal #gg_simple_send_button {
     display: none !important;
 }
 
@@ -1511,7 +1517,7 @@ body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #bg1 {
 }
 
 body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #top-bar {
-    background-color: color-mix(in srgb, var(--sbterm-bg) 78%, transparent) !important;
+    background-color: var(--sbterm-bg) !important;
     border-block-end: 0;
     -webkit-backdrop-filter: blur(20px) !important;
     backdrop-filter: blur(20px) !important;
@@ -1546,11 +1552,12 @@ body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_shel
     inline-size: min(calc(100% - 2rem), 72ch) !important;
     max-inline-size: none !important;
     block-size: auto;
-    max-block-size: none;
+    max-block-size: calc(80% - 2rem);
     overflow: visible;
     padding: 0 !important;
     display: grid !important;
     grid-template-columns: 4.5rem minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
         'mascot prompt'
         'mascot guide' !important;
@@ -1610,6 +1617,7 @@ body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .sbterm-co
     font-size: calc(var(--mainFontSize, 15px) * 0.83);
     font-weight: 450;
     line-height: 1.4;
+    min-block-size: 0;
     max-block-size: min(50dvh, 28rem);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1663,7 +1671,7 @@ body.sbterm .sbterm-command-glossary-help {
 
 body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) :is(#form_sheld, #send_form, #nonQRFormItems) {
     border: 0 !important;
-    background: transparent !important;
+    background: var(--sbterm-bg) !important;
     box-shadow: none !important;
 }
 
@@ -1709,7 +1717,7 @@ body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #send_form
 }
 
 body.sbterm:not(.sbterm-home-visible):has(#sheld #chat .welcomePanel) .autoComplete-wrap:not(.isFloating) > .autoComplete {
-    max-block-size: min(34dvh, 18rem);
+    max-block-size: min(34dvh, 18rem, calc(95vh - var(--bottom, 0px)));
     overflow-y: auto;
 }
 
@@ -1773,7 +1781,7 @@ body.sbterm.sbterm-minimal #chat .ch_name .name_text {
     font-weight: 450;
 }
 
-body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block {
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block:not(:has(.edit_textarea, .reasoning_edit_textarea)) {
     display: grid !important;
     grid-template-columns: max-content minmax(0, 1fr);
     align-items: first baseline;
@@ -2147,17 +2155,40 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         z-index: 82;
         inline-size: min(36vw, 360px);
         display: flex;
+        visibility: hidden;
+        pointer-events: none;
         transform: translateX(calc(-100% - 12px));
-        transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        transition:
+            transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+            visibility 0s linear 180ms;
     }
 
     body.sbterm.sbterm-minimal #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail[data-open='true'] {
+        visibility: visible;
+        pointer-events: auto;
         transform: translateX(0);
+        transition-delay: 0s;
+    }
+
+    body.sbterm.sbterm-minimal:dir(rtl) #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail:not([data-open='true']) {
+        transform: translateX(calc(100% + 12px));
     }
 }
 
 /* 13. Touch and narrow layouts */
 @media (any-pointer: coarse), (pointer: coarse), (hover: none), (max-width: 1000px) {
+    body.sbterm {
+        --sb-composer-action-size: var(--sb-mobile-touch-target, 44px);
+        --sb-composer-send-width: var(--sb-mobile-touch-target, 44px);
+        --sb-message-icon-size: var(--sb-mobile-touch-target, 44px);
+    }
+
+    body.sbterm #sb-bottom-chat-bar {
+        --sb-bottom-chat-mobile-button-size: var(--sb-mobile-touch-target, 44px);
+        --sb-bottom-chat-mobile-select-height: var(--sb-mobile-touch-target, 44px);
+        --sb-bottom-chat-mobile-persona-size: var(--sb-mobile-touch-target, 44px);
+    }
+
     body.sbterm #top-bar #sb-topbar-inner {
         grid-template-columns: auto minmax(5rem, 1fr) auto !important;
     }
@@ -2184,6 +2215,10 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         mask-image: linear-gradient(90deg, #000 0 calc(100% - 1.75rem), transparent);
     }
 
+    body.sbterm:dir(rtl) #sbterm-chat-topbar {
+        mask-image: linear-gradient(270deg, #000 0 calc(100% - 1.75rem), transparent);
+    }
+
     body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) {
         margin-block-end: 0 !important;
     }
@@ -2197,6 +2232,43 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
 
     body.sbterm #chat .mes {
         padding: 9px 10px !important;
+    }
+
+    body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block {
+        display: block !important;
+    }
+
+    body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_buttons {
+        position: static;
+        inline-size: 100%;
+        flex-wrap: wrap;
+    }
+
+    body.sbterm .sb-conversation-message-bubble {
+        padding-inline-end: calc(var(--sb-mobile-touch-target, 44px) + 8px) !important;
+    }
+
+    body.sbterm .sb-conversation-mobile-menu-trigger {
+        right: auto;
+        inset-inline-end: 8px;
+    }
+
+    body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail:not([data-open='true']) {
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+            transform 210ms cubic-bezier(0.16, 1, 0.3, 1),
+            visibility 0s linear 210ms;
+    }
+
+    body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail[data-open='true'] {
+        visibility: visible;
+        pointer-events: auto;
+        transition-delay: 0s;
+    }
+
+    body.sbterm:dir(rtl) #sheld[data-sb-conversation-mode='on'] #sb_conversation_pals_rail:not([data-open='true']) {
+        transform: translateX(calc(100% + 12px));
     }
 
     body.sbterm #chat .mes_buttons,
@@ -2220,12 +2292,16 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         pointer-events: auto !important;
     }
 
-    /* .sb-bottom-chat-btn is deliberately absent: the host's phone bottom bar
-       is a fixed-column grid sized around ~32px buttons, and forcing 44px
-       overflows its tracks and defeats the collapse rows. */
-    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #extensionsMenuButton, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button, .qr--button) {
+    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #extensionsMenuButton, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button, .qr--button, .welcomeShortcut, .welcomeRecentTab, .sbterm-status-details, .sb-conversation-channel-tab, .sb-conversation-mobile-menu-trigger, .sb-conversation-message-action, .sb-conversation-reaction-button, .sb-conversation-message-avatar, .sb-conversation-participant-avatar.is-interactive, .sb-conversation-rail-footer-avatar, .sb-conversation-pal-delete, .sb-conversation-branch-action, .sb-conversation-new-branch, .sb-conversation-stop-image, .swipes-counter.swipe-picker-enabled, .mes_img_swipes .right_menu_button, .mes_img_controls .right_menu_button, .mes_video_controls .right_menu_button) {
         min-inline-size: var(--sb-mobile-touch-target, 44px);
         min-block-size: var(--sb-mobile-touch-target, 44px);
+    }
+
+    body.sbterm #sheld[data-sb-conversation-mode='on'] #sb_conversation_header .menu_button_icon {
+        min-width: var(--sb-mobile-touch-target, 44px) !important;
+        min-inline-size: var(--sb-mobile-touch-target, 44px) !important;
+        min-height: var(--sb-mobile-touch-target, 44px) !important;
+        min-block-size: var(--sb-mobile-touch-target, 44px) !important;
     }
 
     body.sbterm #sbterm-chat-topbar :is(.stih--button, .gg-action-button) {
@@ -2248,20 +2324,6 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
 
     body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .sbterm-command-glossary-list {
         grid-template-columns: minmax(0, 1fr);
-    }
-}
-
-@media (any-pointer: coarse), (pointer: coarse), (hover: none) {
-    body.sbterm .sbterm-status-details {
-        position: relative;
-        min-inline-size: var(--sb-mobile-touch-target, 44px);
-    }
-
-    body.sbterm .sbterm-status-details::before {
-        content: '';
-        position: absolute;
-        inset-block: -14px;
-        inset-inline: 0;
     }
 }
 
@@ -2317,7 +2379,7 @@ body.sbterm.sbterm-crt::after {
     pointer-events: none;
     background-image: repeating-linear-gradient(
         0deg,
-        rgba(2, 4, 3, 0.11) 0 1px,
+        rgba(2, 4, 3, 0.08) 0 1px,
         transparent 1px 3px
     );
     animation: sbterm-flicker 4s infinite;
@@ -2366,7 +2428,9 @@ body.sbterm.reduced-motion *::after {
     body.sbterm.sbterm-crt::after {
         display: none;
     }
+}
 
+@media (forced-colors: active) {
     body.sbterm :focus-visible {
         outline: 2px solid CanvasText !important;
     }
