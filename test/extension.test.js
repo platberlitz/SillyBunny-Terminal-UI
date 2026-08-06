@@ -1095,7 +1095,10 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     // Re-enumerating is what lets host chrome leak back in, so the counts below
     // are the guard: each of these belongs to the §3 reset and nowhere else.
     assert.match(css, /body\.sbterm \*:not\(\[class\*='avatar' i\], \[id\*='avatar' i\]\)[^{]*\{[^}]*border-radius:\s*0 !important;[^}]*box-shadow:\s*none !important;/s, 'the flat terminal surface must be the global default');
-    assert.equal(css.match(/border-radius:\s*0/g).length, 1, 'flat corners belong to the global reset, not to per-element rules');
+    // Two: the global reset, plus the composer override that outranks the 10px
+    // radius the host keeps on #send_textarea/#options_button. Anything beyond
+    // that is per-element enumeration creeping back.
+    assert.equal(css.match(/border-radius:\s*0/g).length, 2, 'flat corners belong to the global reset, not to per-element rules');
     assert.equal(css.match(/box-shadow:\s*none/g).length, 1, 'flat surfaces belong to the global reset, not to per-element rules');
     assert.match(css, /text-shadow:\s*0 0 2px var\(--sbterm-glow\) !important;/, 'the CRT glow must outrank the global text-shadow reset');
     assert.doesNotMatch(css, /#sbterm-settings-drawer > \.inline-drawer-toggle\s*\{[^}]*\b(border|padding|background):/s, "the extension's own drawer must inherit the host header chrome its siblings get");

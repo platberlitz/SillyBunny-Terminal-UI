@@ -914,9 +914,23 @@ body.sbterm #send_textarea {
 
 /* The host caps this strip at 35% width and clips the overflow with
    scrollbar-width: none, so a composer icon gets silently sliced with no hint
-   that anything scrolls. Size it to its buttons and stop clipping. */
+   that anything scrolls.
+   max-content was the wrong tool: it sizes from the icon glyphs and ignores the
+   44px min-width on the buttons, so the strip computed NARROWER than its own
+   contents. Drop the cap and stop the strip shrinking instead; the textarea
+   still takes everything left over. */
 body.sbterm :is(#leftSendForm, #rightSendForm) {
-    max-inline-size: max-content !important;
+    max-inline-size: none !important;
+    flex: 0 0 auto !important;
+}
+
+/* Measured: #send_textarea and #options_button keep a 10px radius that outranks
+   the §3 reset, so the composer stayed rounded. The stray arcs beside the input
+   ARE those corners, and a rounded box also clips the corners off the icon
+   sitting in it — one cause, both symptoms. The #form_sheld ancestor puts this
+   out of reach of whatever is setting the 10px. */
+html body.sbterm #form_sheld :is(#send_form, #nonQRFormItems, #send_textarea, #leftSendForm, #rightSendForm, #send_but, #options_button, #extensionsMenuButton, .interactable) {
+    border-radius: 0 !important;
 }
 
 body.sbterm #send_but {
