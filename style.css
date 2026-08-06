@@ -623,16 +623,21 @@ body.sbterm #sbterm-chat-topbar {
     background: transparent;
 }
 
-/* Match the composer width while each toolbar keeps its own intrinsic height. */
+/* Match the composer width while each toolbar keeps its own intrinsic height.
+   The bottom bar keeps the host's own row structure and collapse mechanic
+   (persona / chat select / nav+collapse on top, management row below). */
 body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) {
     inline-size: var(--sbterm-composer-row-width, 100%) !important;
     min-inline-size: var(--sbterm-composer-row-width, 100%) !important;
     max-inline-size: var(--sbterm-composer-row-width, 100%) !important;
+    box-sizing: border-box;
+    margin-inline: auto !important;
+}
+
+body.sbterm #sbterm-chat-topbar {
     block-size: auto !important;
     min-block-size: 44px !important;
     max-block-size: none !important;
-    box-sizing: border-box;
-    margin-inline: auto !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
 }
@@ -691,14 +696,6 @@ body.sbterm #sbterm-chat-topbar .qr--button {
     line-height: 1.6;
 }
 
-body.sbterm #sb-bottom-chat-bar {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-}
-
-body.sbterm #sb-bottom-chat-bar .sb-bottom-chat-secondary-row {
-    display: contents !important;
-}
 body.sbterm #sbterm-chat-topbar:empty {
     display: none;
 }
@@ -891,7 +888,10 @@ body.sbterm .sb-bottom-chat-search-field {
     box-shadow: none !important;
 }
 
-body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_button, .menu_button_icon, .sb-bottom-chat-btn, .stih--button, .gg-action-button, .qr--button) {
+/* #sb-persona-bubble is excluded: it is a button whose persona portrait is
+   painted as an inline background-image, which `background: transparent`
+   would erase. */
+body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_button, .menu_button_icon, .sb-bottom-chat-btn, .stih--button, .gg-action-button, .qr--button):not(#sb-persona-bubble) {
     background: transparent !important;
     background-image: none !important;
     border-color: transparent !important;
@@ -899,7 +899,7 @@ body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_butt
     color: var(--sbterm-fg-dim) !important;
 }
 
-body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_button, .menu_button_icon, .sb-bottom-chat-btn, .stih--button, .gg-action-button, .qr--button):is(:hover, :focus-visible, .is-active, [aria-pressed='true'], [aria-current='page']) {
+body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_button, .menu_button_icon, .sb-bottom-chat-btn, .stih--button, .gg-action-button, .qr--button):not(#sb-persona-bubble):is(:hover, :focus-visible, .is-active, [aria-pressed='true'], [aria-current='page']) {
     background: transparent !important;
     border-color: transparent !important;
     color: var(--sbterm-accent) !important;
@@ -2166,65 +2166,13 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         padding-inline: 6px;
     }
 
-    /* A side avatar column eats a quarter of a phone transcript, and the
-       Moonlit styles (ripple/whisper/echo/hush/tide) size that column from
-       their own variables, so shrinking --avatar-base-width never reached
-       them (audit: 26-character lines under Ripple at 390px). On touch,
-       every style family restacks: a compact avatar+meta strip on top,
-       prose at full width below. Selectors intentionally mirror the host's
-       specificity so the later-loaded extension sheet wins the tie. */
-    body.sbterm #chat .mes:not(.smallSysMes) {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-    }
-
-    body.sbterm #chat .mes:not(.smallSysMes) .mesAvatarWrapper {
-        position: static !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 1ch !important;
-        inline-size: 100% !important;
-        max-inline-size: 100% !important;
-        min-inline-size: 0 !important;
-        block-size: auto !important;
-        min-block-size: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        text-align: start !important;
-    }
-
-    body.sbterm #chat .mes:not(.smallSysMes) .mesAvatarWrapper .avatar,
-    body.sbterm #chat .mes:not(.smallSysMes) .mesAvatarWrapper .avatar > img {
-        inline-size: 32px !important;
-        min-inline-size: 32px !important;
-        max-inline-size: 32px !important;
-        block-size: 32px !important;
-        min-block-size: 32px !important;
-        max-block-size: 32px !important;
-        aspect-ratio: 1 !important;
-        object-fit: cover;
-    }
-
-    body.sbterm #chat .mes:not(.smallSysMes) .mes_block {
-        inline-size: 100% !important;
-        max-inline-size: 100% !important;
-        margin: 0 !important;
-        padding-inline: 0 !important;
-    }
-
-    /* In the stacked layout the swipe-left arrow would become its own row;
-       anchor it opposite the host's absolutely-positioned swipe-right block. */
-    body.sbterm #chat .mes:not(.smallSysMes) > .swipe_left {
-        position: absolute;
-        inset-inline-start: 6px;
-        inset-block-end: 6px;
-        margin: 0 !important;
-    }
-
-    body.sbterm #chat .mes.last_mes:not(.smallSysMes) {
-        padding-block-end: 34px !important;
+    /* Each chat style keeps its own message layout on phones — Ripple's tall
+       portrait column and the Moonlit banners are the styles' identity. Only
+       the default styles' avatar is compacted to the 44px touch target;
+       the Moonlit families size their own columns and are left alone. */
+    body.sbterm #chat .mesAvatarWrapper {
+        --avatar-base-width: 44px;
+        --avatar-base-height: 44px;
     }
 
     /* ponytail: the auxiliary bars are one scrollable row on touch; fade the
@@ -2285,7 +2233,10 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         pointer-events: auto !important;
     }
 
-    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-bottom-chat-btn, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #extensionsMenuButton, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button, .qr--button) {
+    /* .sb-bottom-chat-btn is deliberately absent: the host's phone bottom bar
+       is a fixed-column grid sized around ~32px buttons, and forcing 44px
+       overflows its tracks and defeats the collapse rows. */
+    body.sbterm :is(.menu_button, .menu_button_icon, .sb-proxy-button, .sb-shell-tab, .sb-shell-close, #send_but, #mes_stop, #options_button, #extensionsMenuButton, #sb_conversation_send, #sb_conversation_pals_toggle, .sb-conversation-tool-button, .qr--button) {
         min-inline-size: var(--sb-mobile-touch-target, 44px);
         min-block-size: var(--sb-mobile-touch-target, 44px);
     }
