@@ -1101,6 +1101,10 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.equal(css.match(/border-radius:\s*0/g).length, 2, 'flat corners belong to the global reset, not to per-element rules');
     assert.equal(css.match(/box-shadow:\s*none/g).length, 1, 'flat surfaces belong to the global reset, not to per-element rules');
     assert.match(css, /text-shadow:\s*0 0 2px var\(--sbterm-glow\) !important;/, 'the CRT glow must outrank the global text-shadow reset');
+    // A mask, not an <img>: the bunny takes the palette accent instead of a
+    // baked-in colour, so the splash matches whichever palette is active.
+    assert.match(css, /\.splash-logo\s*\{\s*display:\s*none !important;/, 'the raster SillyBunny badge must not show on the terminal splash');
+    assert.match(css, /#loader\.splash-screen::before\s*\{[^}]*background-color:\s*var\(--sbterm-accent2\);[^}]*mask-image:\s*url\("data:image\/svg\+xml;base64,/s, 'the splash bunny must be a palette-tinted mask');
     assert.doesNotMatch(css, /#sbterm-settings-drawer > \.inline-drawer-toggle\s*\{[^}]*\b(border|padding|background):/s, "the extension's own drawer must inherit the host header chrome its siblings get");
     assert.match(css, /--sb-bottom-chat-mobile-button-size:\s*var\(--sb-mobile-touch-target, 44px\);/, 'bottom-bar controls must inherit the 44px touch target');
     // Measured: a 44px min-height here made the status row 44px and the banner

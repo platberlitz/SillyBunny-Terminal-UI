@@ -2407,6 +2407,60 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
     }
 }
 
+/* 15. Boot splash */
+/* The splash paints from --SmartTheme* which §2 already remaps, but it also
+   ships a raster SillyBunny badge and a 30px blur. Swap the badge for the same
+   bunny the statusline uses — as a mask, so it takes the palette accent rather
+   than a baked-in colour. */
+body.sbterm #preloader {
+    background-color: var(--sbterm-bg) !important;
+    color: var(--sbterm-fg) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+body.sbterm .splash-logo {
+    display: none !important;
+}
+
+body.sbterm #loader.splash-screen {
+    gap: 2rem;
+}
+
+body.sbterm #loader.splash-screen::before {
+    content: '';
+    display: block;
+    inline-size: min(150px, 50%);
+    aspect-ratio: 1;
+    background-color: var(--sbterm-accent2);
+    -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0iIzAwMCIgYXJpYS1oaWRkZW49InRydWUiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMwIDQwQzI4IDI2IDI3IDEyIDMzIDlDMzkgNiA0MiAyMCA0MiAzNEM0NCAzMyA1MiAzMyA1NCAzNEM1NCAyMCA1NyA2IDYzIDlDNjkgMTIgNjggMjYgNjYgNDBDNzQgNDYgNzggNTQgNzggNjNDNzggNzggNjUgODggNDggODhDMzEgODggMTggNzggMTggNjNDMTggNTQgMjIgNDYgMzAgNDBaTTM0IDE1QzMyIDIyIDMyIDI5IDM1IDMzQzM4IDI5IDM4IDIwIDM3IDE0QzM2IDEyIDM1IDEzIDM0IDE1Wk01OSAxNEM1OCAyMCA1OCAyOSA2MSAzM0M2NCAyOSA2NCAyMiA2MiAxNUM2MSAxMyA2MCAxMiA1OSAxNFpNMzQgNjBhNC41IDQuNSAwIDEgMCA5IDBhNC41IDQuNSAwIDEgMC05IDBNNTMgNjBhNC41IDQuNSAwIDEgMCA5IDBhNC41IDQuNSAwIDEgMC05IDBNNDUgNjlsNiAwbC0zIDQuNXoiLz48L3N2Zz4=");
+    mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0iIzAwMCIgYXJpYS1oaWRkZW49InRydWUiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTMwIDQwQzI4IDI2IDI3IDEyIDMzIDlDMzkgNiA0MiAyMCA0MiAzNEM0NCAzMyA1MiAzMyA1NCAzNEM1NCAyMCA1NyA2IDYzIDlDNjkgMTIgNjggMjYgNjYgNDBDNzQgNDYgNzggNTQgNzggNjNDNzggNzggNjUgODggNDggODhDMzEgODggMTggNzggMTggNjNDMTggNTQgMjIgNDYgMzAgNDBaTTM0IDE1QzMyIDIyIDMyIDI5IDM1IDMzQzM4IDI5IDM4IDIwIDM3IDE0QzM2IDEyIDM1IDEzIDM0IDE1Wk01OSAxNEM1OCAyMCA1OCAyOSA2MSAzM0M2NCAyOSA2NCAyMiA2MiAxNUM2MSAxMyA2MCAxMiA1OSAxNFpNMzQgNjBhNC41IDQuNSAwIDEgMCA5IDBhNC41IDQuNSAwIDEgMC05IDBNNTMgNjBhNC41IDQuNSAwIDEgMCA5IDBhNC41IDQuNSAwIDEgMC05IDBNNDUgNjlsNiAwbC0zIDQuNXoiLz48L3N2Zz4=");
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+body.sbterm .splash-message {
+    color: var(--sbterm-fg-dim) !important;
+    font-family: var(--monoFontFamily);
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    opacity: 1;
+}
+
+body.sbterm .splash-message::before {
+    content: '> ' / '';
+    color: var(--sbterm-accent);
+}
+
+body.sbterm #load-spinner {
+    color: var(--sbterm-accent) !important;
+}
+
 /* 14. Optional CRT overlay */
 body.sbterm.sbterm-crt::after {
     content: '';

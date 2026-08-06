@@ -75,6 +75,10 @@ run:idle | chat:Nahida/Rooftop Talk | api:openrouter/claude-3.7 | prompt:11.8k/3
 
 The run state comes first so it survives truncation. When disconnected, the line starts with `run:disconnected` and the adjacent **connect** button opens API settings. **more** reveals the complete status as a toast. Prompt tokens are counted from the last fully assembled request. Conversation Mode can use a scoped connection, so it reports `prompt:n/a` rather than showing stale Roleplay data.
 
+## Boot splash
+
+The loading screen follows the active palette and shows the Terminal UI bunny in place of the SillyBunny badge. The bunny is a CSS mask, so it takes the palette accent rather than a fixed colour, and the 30px backdrop blur is dropped.
+
 ## Palettes
 
 `phosphor-green`, `terminal-amber`, `gameboy-dmg`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`.
