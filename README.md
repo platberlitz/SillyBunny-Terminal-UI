@@ -4,6 +4,8 @@ A command-first interface for [SillyBunny](https://github.com/SillyBunnyTeam/Sil
 
 ## Screenshots
 
+On the default Phosphor Green palette.
+
 <table>
   <tr>
     <td colspan="2">
@@ -17,8 +19,8 @@ A command-first interface for [SillyBunny](https://github.com/SillyBunnyTeam/Sil
       <img src="screenshots/slash-command-preview.webp" alt="Native slash-command preview above the Terminal Home prompt">
     </td>
     <td width="50%">
-      <strong>Workspace navigation</strong><br>
-      <img src="screenshots/workspace-navigation.webp" alt="SillyBunny API workspace styled by Terminal UI">
+      <strong>Conversation Mode</strong><br>
+      <img src="screenshots/conversation-mode.webp" alt="SillyBunny Conversation Mode styled by Terminal UI">
     </td>
   </tr>
   <tr>

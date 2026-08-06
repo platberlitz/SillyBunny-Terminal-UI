@@ -2461,6 +2461,14 @@ body.sbterm #load-spinner {
     color: var(--sbterm-accent) !important;
 }
 
+/* Conversation Mode brings its own shell, transcript and composer, but the
+   Terminal Home gate only asks whether #chat still holds a .welcomePanel —
+   which it does — so Home's prompt, mascot and command glossary rendered
+   straight over the conversation. */
+body.sbterm:has(#sheld[data-sb-conversation-mode='on']) :is(#form_sheld, #send_form, .sbterm-command-glossary, .sbterm-mascot-form) {
+    display: none !important;
+}
+
 /* 14. Optional CRT overlay */
 body.sbterm.sbterm-crt::after {
     content: '';
