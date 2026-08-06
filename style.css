@@ -870,6 +870,12 @@ body.sbterm .mes_media_wrapper {
     color: var(--sbterm-fg) !important;
 }
 
+/* .mes_reasoning_details wraps the whole block and .mes_reasoning_header_block
+   is a flex-grow: 1 spacer; filling either paints a slab past the header box. */
+body.sbterm :is(.mes_reasoning_details, .mes_reasoning_header_block) {
+    background-color: transparent !important;
+}
+
 body.sbterm #chat pre,
 body.sbterm #chat code,
 body.sbterm #chat table {
