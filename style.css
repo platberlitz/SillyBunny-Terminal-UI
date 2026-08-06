@@ -263,6 +263,10 @@ body.sbterm {
     --sb-radius-xl: 0;
     --sb-radius-button: 0;
     --sbterm-prose-width: 78ch;
+    /* Monospace reads larger than a proportional face at the same px, so the
+       host's mainFontSize is oversized here. One knob — raise toward 1 to
+       match the host exactly. */
+    --sbterm-text-scale: 0.92;
     --sb-shell-surface: var(--sbterm-bg);
     --sb-shell-main-bg: var(--sbterm-bg);
     --sb-shell-nav-bg: var(--sbterm-bg-alt);
@@ -292,6 +296,11 @@ body.sbterm {
     --sb-button-hover: var(--sbterm-bg-alt);
     --sb-shell-tab-active-bg: var(--sbterm-bg-alt);
     --sb-shell-header-bg: var(--sbterm-bg-alt);
+    /* body::before / body::after are fixed full-viewport ambient washes
+       (sillybunny-theme.css:446). Neutralising the tokens kills both without
+       fighting ::after when the CRT overlay claims it. */
+    --sb-ambient-a: transparent;
+    --sb-ambient-b: transparent;
     --sb-mobile-overlay-bg: var(--sbterm-bg);
     --sb-mobile-panel-bg: var(--sbterm-bg);
     --sb-card-bg: var(--sbterm-bg-alt);
@@ -765,6 +774,13 @@ body.sbterm #chat .mes_block {
     padding: 0 !important;
 }
 
+/* Transcript and composer share one scale so what you type matches what you
+   read. Applies in both densities. */
+body.sbterm #chat .mes_text,
+body.sbterm #send_textarea {
+    font-size: calc(var(--mainFontSize, 15px) * var(--sbterm-text-scale, 0.92)) !important;
+}
+
 /* Monospace runs unreadable past ~80ch; cap prose in BOTH densities
    (audit: full chrome measured 184-column lines at 1920px). */
 body.sbterm #chat .mes .mes_block {
@@ -889,7 +905,6 @@ body.sbterm #send_textarea {
    that anything scrolls. Size it to its buttons and stop clipping. */
 body.sbterm :is(#leftSendForm, #rightSendForm) {
     max-inline-size: max-content !important;
-    overflow: visible !important;
 }
 
 body.sbterm #send_but {
@@ -1797,7 +1812,6 @@ body.sbterm.sbterm-minimal #chat .mes[is_system='true'] .ch_name .name_text::bef
 
 body.sbterm.sbterm-minimal #chat .mes_text {
     color: var(--sbterm-fg) !important;
-    font-size: var(--mainFontSize, 15px);
     line-height: 1.62;
 }
 
