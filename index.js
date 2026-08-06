@@ -26,7 +26,37 @@ const PALETTES = [
 ];
 
 const PALETTE_IDS = PALETTES.map(([id]) => id);
-const DEFAULTS = { version: 2, enabled: true, palette: 'phosphor-green', crt: false, minimal: true, topbarVisible: false, avatarVisible: true, chatTopbarVisible: true, bottomBarVisible: true };
+const DEFAULTS = { version: 2, enabled: true, palette: 'phosphor-green', crt: false, minimal: true, topbarVisible: false, avatarVisible: true, chatTopbarVisible: false, bottomBarVisible: false };
+
+/* The Moonlit Echoes theme extension restyles the same surfaces this reskin
+   owns and the two fight; while Terminal UI is on, its stylesheets are turned
+   off in place (sheet.disabled — nothing is persisted, so turning Terminal UI
+   off brings Moonlit straight back). */
+const MOONLIT_STYLE_IDS = [
+    'MoonlitEchosTheme-style',
+    'MoonlitEchosTheme-extension',
+    'MoonlitEchosTheme-chat-styles',
+    'dynamic-theme-styles',
+    'moonlit-raw-css',
+    'moonlit-disable-chat-surface-reset',
+    'third-party_SillyBunny-MoonlitEchoesTheme-css',
+];
+let moonlitObserver = null;
+
+function syncMoonlitSuppression(enabled) {
+    if (typeof document === 'undefined') return;
+    for (const id of MOONLIT_STYLE_IDS) {
+        const sheet = document.getElementById(id);
+        if (sheet && 'disabled' in sheet) sheet.disabled = enabled;
+    }
+    if (enabled && !moonlitObserver && typeof MutationObserver !== 'undefined' && document.head) {
+        moonlitObserver = new MutationObserver(() => syncMoonlitSuppression(true));
+        moonlitObserver.observe(document.head, { childList: true });
+    } else if (!enabled) {
+        moonlitObserver?.disconnect();
+        moonlitObserver = null;
+    }
+}
 
 const SHELL_DESTINATIONS = {
     workspace: ['left'],
@@ -239,6 +269,7 @@ function apply() {
     document.body.classList.toggle('sbterm-bottom-bar-hidden', enabled && !settings.bottomBarVisible);
 
     syncBottomBar(enabled, settings.bottomBarVisible);
+    syncMoonlitSuppression(enabled);
 
     if (enabled) {
         document.body.dataset.sbtermPalette = settings.palette;
@@ -1385,6 +1416,7 @@ function deactivate() {
     unregisterCommands();
     unbindEvents();
     teardownDom();
+    syncMoonlitSuppression(false);
 
     if (typeof document !== 'undefined') {
         document.getElementById(DRAWER_ID)?.remove();

@@ -390,8 +390,8 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(settings.palette, 'nord');
     assert.equal(settings.topbarVisible, false);
     assert.equal(settings.avatarVisible, true);
-    assert.equal(settings.chatTopbarVisible, true);
-    assert.equal(settings.bottomBarVisible, true);
+    assert.equal(settings.chatTopbarVisible, false);
+    assert.equal(settings.bottomBarVisible, false);
     assert.equal(saves, 1);
     assert(document.body.classList.contains('sbterm'));
     assert(document.body.classList.contains('sbterm-minimal'));
@@ -399,7 +399,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(document.listenerCount('keydown'), 1);
     assert.equal(document.listenerCount('click'), 1);
     assert.equal(document.listenerCount('touchend'), 0);
-    assert(!bottomBar.classList.contains('displayNone'), 'enabled UI may reveal the bar while preserving its host state');
+    assert(bottomBar.classList.contains('displayNone'), 'chat bars stay hidden by default until the user opts in');
     assert(document.getElementById('sbterm-settings-drawer'));
     assert(document.getElementById('sbterm-banner'));
     assert(document.getElementById('sbterm-statusline'));

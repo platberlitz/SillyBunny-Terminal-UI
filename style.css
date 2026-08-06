@@ -850,6 +850,21 @@ body.sbterm #send_textarea {
     caret-shape: block;
 }
 
+/* The host (especially its phone shell) rounds and drop-shadows the composer
+   action buttons; keep them in the terminal vocabulary in every density. */
+body.sbterm #nonQRFormItems :is(#leftSendForm, #rightSendForm) > div,
+body.sbterm #send_but,
+body.sbterm #send_form .mes_stop {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+body.sbterm #send_but {
+    background: var(--sbterm-accent) !important;
+    color: var(--sbterm-selected-fg) !important;
+    border: 1px solid transparent !important;
+}
+
 body.sbterm #send_form.sb-generating-controls,
 body.sbterm #form_sheld.isExecutingCommandsFromChatInput {
     border-color: var(--sbterm-accent2) !important;
@@ -1799,12 +1814,21 @@ body.sbterm.sbterm-minimal #send_form {
     overflow: visible;
 }
 
-body.sbterm.sbterm-minimal #nonQRFormItems {
-    grid-template-columns: max-content minmax(0, 1fr) max-content !important;
-    grid-template-areas: 'prompt input action' !important;
-    gap: 0 0.75ch !important;
-    min-block-size: 0 !important;
-    padding: 0 !important;
+/* Desktop-pointer only: the host's phone composer is its own named-area grid
+   ('tools input action' with button rails); imposing this grid there collapses
+   the rails, stranding the options/wand row and floating send over the input. */
+@media not ((any-pointer: coarse) or (pointer: coarse) or (hover: none) or (max-width: 1000px)) {
+    body.sbterm.sbterm-minimal #nonQRFormItems {
+        grid-template-columns: max-content minmax(0, 1fr) max-content !important;
+        grid-template-areas: 'prompt input action' !important;
+        gap: 0 0.75ch !important;
+        min-block-size: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.sbterm.sbterm-minimal #leftSendForm {
+        display: none !important;
+    }
 }
 
 body.sbterm.sbterm-minimal #nonQRFormItems::before {
@@ -1818,7 +1842,6 @@ body.sbterm.sbterm-minimal #nonQRFormItems::before {
     padding: 0.35rem 0 0 !important;
 }
 
-body.sbterm.sbterm-minimal #leftSendForm,
 body.sbterm.sbterm-minimal #send_form > #gg-action-button-container,
 body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
 body.sbterm.sbterm-minimal .stih--standalone {
@@ -2196,12 +2219,6 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         min-block-size: 44px;
     }
 
-    /* Minimal density hides the composer's left cluster for keyboard purists,
-       but on touch the options and wand menus need a tap path even when the
-       bottom bar is hidden. */
-    body.sbterm.sbterm-minimal #leftSendForm {
-        display: flex !important;
-    }
 
     /* The active-chat autocomplete must not bury the transcript; cap it like
        the Home dropdown already is (the Home rule keeps its 34dvh cap). */
