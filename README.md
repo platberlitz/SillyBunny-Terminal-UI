@@ -79,9 +79,16 @@ The run state comes first so it survives truncation. When disconnected, the line
 
 The loading screen follows the active palette and shows the Terminal UI bunny in place of the SillyBunny badge. The bunny is a CSS mask, so it takes the palette accent rather than a fixed colour, and the 30px backdrop blur is dropped.
 
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/splash-desktop.webp" alt="Terminal UI boot splash on desktop"></td>
+    <td width="28%"><img src="screenshots/splash-mobile.webp" alt="Terminal UI boot splash on mobile"></td>
+  </tr>
+</table>
+
 ## Palettes
 
-`phosphor-green`, `terminal-amber`, `gameboy-dmg`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`.
+`phosphor-green`, `terminal-amber`, `gameboy-dmg`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`. See the [palette gallery](#palette-gallery) for all thirteen.
 
 CRT scanlines are optional and off by default. Motion stops under `prefers-reduced-motion`; the overlay is removed under forced colors or increased contrast.
 
@@ -107,3 +114,150 @@ The extension ships as native browser modules with no build step or runtime depe
 ## License
 
 AGPL-3.0
+
+## Palette gallery
+
+Every palette, desktop and mobile, on the terminal Home screen. Captured from a running SillyBunny with no API connected, which is why the statusline reads `run:disconnected`.
+
+### Phosphor Green
+
+`phosphor-green`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/phosphor-green-desktop.webp" alt="Phosphor Green on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/phosphor-green-mobile.webp" alt="Phosphor Green on mobile"></td>
+  </tr>
+</table>
+
+### Terminal Amber
+
+`terminal-amber`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/terminal-amber-desktop.webp" alt="Terminal Amber on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/terminal-amber-mobile.webp" alt="Terminal Amber on mobile"></td>
+  </tr>
+</table>
+
+### Game Boy DMG
+
+`gameboy-dmg`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/gameboy-dmg-desktop.webp" alt="Game Boy DMG on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/gameboy-dmg-mobile.webp" alt="Game Boy DMG on mobile"></td>
+  </tr>
+</table>
+
+### Teletext
+
+`teletext`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/teletext-desktop.webp" alt="Teletext on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/teletext-mobile.webp" alt="Teletext on mobile"></td>
+  </tr>
+</table>
+
+### Chrome 98
+
+`chrome-98`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/chrome-98-desktop.webp" alt="Chrome 98 on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/chrome-98-mobile.webp" alt="Chrome 98 on mobile"></td>
+  </tr>
+</table>
+
+### DOS Cobalt
+
+`dos-cobalt`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/dos-cobalt-desktop.webp" alt="DOS Cobalt on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/dos-cobalt-mobile.webp" alt="DOS Cobalt on mobile"></td>
+  </tr>
+</table>
+
+### Paper Tape
+
+`paper-tape`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/paper-tape-desktop.webp" alt="Paper Tape on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/paper-tape-mobile.webp" alt="Paper Tape on mobile"></td>
+  </tr>
+</table>
+
+### VFD Cyan
+
+`vfd-cyan`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/vfd-cyan-desktop.webp" alt="VFD Cyan on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/vfd-cyan-mobile.webp" alt="VFD Cyan on mobile"></td>
+  </tr>
+</table>
+
+### Dracula
+
+`dracula`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/dracula-desktop.webp" alt="Dracula on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/dracula-mobile.webp" alt="Dracula on mobile"></td>
+  </tr>
+</table>
+
+### Gruvbox
+
+`gruvbox`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/gruvbox-desktop.webp" alt="Gruvbox on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/gruvbox-mobile.webp" alt="Gruvbox on mobile"></td>
+  </tr>
+</table>
+
+### Solarized Dark
+
+`solarized-dark`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/solarized-dark-desktop.webp" alt="Solarized Dark on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/solarized-dark-mobile.webp" alt="Solarized Dark on mobile"></td>
+  </tr>
+</table>
+
+### Nord
+
+`nord`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/nord-desktop.webp" alt="Nord on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/nord-mobile.webp" alt="Nord on mobile"></td>
+  </tr>
+</table>
+
+### Inherit Active Theme
+
+`inherit`
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/inherit-desktop.webp" alt="Inherit Active Theme on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/inherit-mobile.webp" alt="Inherit Active Theme on mobile"></td>
+  </tr>
+</table>
