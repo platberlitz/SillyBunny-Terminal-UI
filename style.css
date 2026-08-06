@@ -922,6 +922,16 @@ body.sbterm #send_textarea {
 body.sbterm :is(#leftSendForm, #rightSendForm) {
     max-inline-size: none !important;
     flex: 0 0 auto !important;
+    /* Safe now that the strip always fits its buttons: the host's overflow-y
+       clip is what sliced the glyph, not a genuine overflow. */
+    overflow: visible !important;
+}
+
+/* These sit at font-size 16px with line-height 16px, and Font Awesome draws
+   outside that em box — fa-wand-magic-sparkles puts its sparkles above it. The
+   glyph has to be free to paint past the box on every ancestor that clips. */
+html body.sbterm #form_sheld :is(#options_button, #extensionsMenuButton, #send_but, #leftSendForm > *, #rightSendForm > *) {
+    overflow: visible !important;
 }
 
 /* Measured: #send_textarea and #options_button keep a 10px radius that outranks
