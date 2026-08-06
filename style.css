@@ -383,6 +383,12 @@ body.sbterm #bg1 {
     pointer-events: none;
 }
 
+/* These ::before layers fill their parent at z-index -1: above the parent's own
+   background, below the content. #sheld::before paints
+   var(--sheldBackgroundColor) plus a backdrop blur, so a dark value there
+   covers the terminal surface while the messages — which this sheet makes
+   transparent — show it straight through. Killing background-image alone left
+   the colour and the blur behind. */
 body.sbterm #sheld::before,
 body.sbterm #top-bar::before,
 body.sbterm .sb-shell-root::before,
@@ -391,7 +397,9 @@ body.sbterm .welcomeRecentShell::before,
 body.sbterm .welcomeGuidePanel::before,
 body.sbterm .welcomeGuideCard::before,
 body.sbterm .recentChat::before {
-    background-image: none !important;
+    background: transparent !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
 }
 
 body.sbterm * {

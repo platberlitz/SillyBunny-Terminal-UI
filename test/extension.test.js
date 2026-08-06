@@ -1073,6 +1073,11 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert(!css.includes('sbterm-minimal:not(.sbterm-home-visible)'), 'Home replacement must not depend on terminal density');
     assert.match(css, /\.sbterm-command-glossary[^}]+max-block-size:\s*min\(50dvh, 28rem\)[^}]+overflow-y:\s*auto;/s, 'the complete Home reference must scroll independently');
     assert.match(css, /\.sbterm-command-glossary-list[^}]+grid-template-columns:\s*minmax\(0, 1fr\)/s, 'Home commands must remain one column so descriptions cannot overlap');
+    // #sheld::before fills the shell at z-index -1, above its background and
+    // below the messages this sheet makes transparent. Killing only
+    // background-image left --sheldBackgroundColor painting straight over the
+    // terminal surface — measured rgba(45,45,45,0.95) on a silver palette.
+    assert.match(css, /#sheld::before,[^{]+\{[^}]*background:\s*transparent !important;[^}]*backdrop-filter:\s*none !important;/s, 'decorative shell overlays must not paint over the terminal surface');
     assert.doesNotMatch(css, /:has\(#chat \.welcomePanel\) #bg1\b/, 'Terminal Home must sit on the flat terminal surface, not reveal the host wallpaper');
     assert.doesNotMatch(css, /:has\(#chat \.welcomePanel\) #sheld\s*\{[^}]*backdrop-filter/s, 'Terminal Home must not float a translucent blurred panel over the page');
     assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #top-bar\s*\{[^}]+background-color:\s*var\(--sbterm-bg\) !important;/s, 'Home text chrome needs an opaque contrast backing');
