@@ -1016,6 +1016,15 @@ body.sbterm .sb-settings-tab-btn:is(:hover, :focus-visible, [aria-selected='true
     color: var(--sbterm-selected-fg) !important;
 }
 
+/* The host tints active-tab icons with --color-primary (sillybunny-tabs.css
+   :2127), which §2 remaps to --sbterm-accent — so the accent-filled highlight
+   above rendered accent-on-accent in every palette. Icons follow the row. */
+body.sbterm .sb-shell-tab:is(:hover, :focus-visible, [aria-selected='true']) :is(i, svg),
+body.sbterm .sb-settings-tab-btn:is(:hover, :focus-visible, [aria-selected='true']) :is(i, svg) {
+    color: var(--sbterm-selected-fg) !important;
+    opacity: 1 !important;
+}
+
 body.sbterm .welcomePanel,
 body.sbterm .welcomeGuidePanel,
 body.sbterm .welcomeRecentShell,
@@ -1233,12 +1242,6 @@ body.sbterm .autoComplete-wrap:not(.isFloating),
 body.sbterm .autoComplete-detailsWrap:not(.isFloating) {
     left: var(--sbterm-autocomplete-left, var(--leftOffset, 1vw)) !important;
     right: var(--sbterm-autocomplete-right, var(--rightOffset, 1vw)) !important;
-}
-
-/* Guided Generations' simple-send duplicates the composer's send button;
-   two paper planes on one screen read as two different actions. */
-body.sbterm.sbterm-minimal #gg_simple_send_button {
-    display: none !important;
 }
 
 body.sbterm .autoComplete > .item {
@@ -2234,11 +2237,14 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         padding: 9px 10px !important;
     }
 
-    body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block {
+    /* These must carry the same specificity as the §11 grid rules they undo
+       (the :not(:has()) there outweighs a plain selector), or touch keeps the
+       grid and the always-visible buttons sit on top of the first text line. */
+    body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block:not(:has(.edit_textarea, .reasoning_edit_textarea)) {
         display: block !important;
     }
 
-    body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_buttons {
+    body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .mes_block .mes_buttons {
         position: static;
         inline-size: 100%;
         flex-wrap: wrap;

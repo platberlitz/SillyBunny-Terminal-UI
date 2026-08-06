@@ -1054,9 +1054,13 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #top-bar\s*\{[^}]+background-color:\s*var\(--sbterm-bg\) !important;/s, 'Home text chrome needs an opaque contrast backing');
     assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block:not\(:has\(\.edit_textarea, \.reasoning_edit_textarea\)\)\s*\{[^}]+display:\s*grid !important;/s, 'message editors must opt out of the inline user-message grid');
     assert.match(css, /--ac-style-color-selectedText:\s*var\(--sbterm-selected-fg\);/, 'selected autocomplete text must use the on-accent token');
-    assert.match(css, /body\.sbterm\.sbterm-minimal #gg_simple_send_button\s*\{[^}]+display:\s*none !important;/s, 'duplicate Simple Send suppression must be terminal-density only');
+    assert.doesNotMatch(css, /#gg_simple_send_button/, 'Simple Send is a distinct Guided Generations action and must stay visible');
     assert.match(css, /#sb_conversation_pals_rail\s*\{[^}]+visibility:\s*hidden;[^}]+pointer-events:\s*none;/s, 'closed off-screen rails must leave keyboard navigation');
-    assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_buttons\s*\{[^}]+position:\s*static;[^}]+flex-wrap:\s*wrap;/s, 'touch message actions must not overlay message text');
+    // The .mes_block ancestor and the :not(:has()) below are load-bearing: without
+    // them these lose the specificity tie with the §11 grid rules they undo.
+    assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block \.mes_buttons\s*\{[^}]+position:\s*static;[^}]+flex-wrap:\s*wrap;/s, 'touch message actions must not overlay message text');
+    assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block:not\(:has\(\.edit_textarea, \.reasoning_edit_textarea\)\)\s*\{\s*display:\s*block !important;/s, 'touch must unstack the inline user-message grid');
+    assert.match(css, /\.sb-shell-tab:is\(:hover, :focus-visible, \[aria-selected='true'\]\) :is\(i, svg\)[^{]*\{[^}]+color:\s*var\(--sbterm-selected-fg\) !important;/s, 'accent-filled tabs must not keep the host accent-tinted icon');
     assert.match(css, /--sb-bottom-chat-mobile-button-size:\s*var\(--sb-mobile-touch-target, 44px\);/, 'bottom-bar controls must inherit the 44px touch target');
     assert.match(css, /@media \(forced-colors: active\)\s*\{[^}]+outline:\s*2px solid CanvasText !important;/s, 'system focus colors belong only to forced-colors mode');
     assert.doesNotMatch(css, /@media \(forced-colors: active\), \(prefers-contrast: more\)\s*\{[^}]+CanvasText/s, 'ordinary increased contrast must keep palette-aware focus rings');
