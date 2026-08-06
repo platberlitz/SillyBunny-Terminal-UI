@@ -2188,19 +2188,6 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         margin-block-end: 0 !important;
     }
 
-    /* The In-Chat Agents companion tab floats over the transcript and the
-       host reserves no space for it; keep it, but as a quiet icon-size chip
-       instead of a full vertical label covering message text. */
-    body.sbterm .ica--tpanel-handle span {
-        display: none;
-    }
-
-    body.sbterm .ica--tpanel-handle {
-        opacity: 0.55;
-        min-block-size: 44px;
-    }
-
-
     /* The active-chat autocomplete must not bury the transcript; cap it like
        the Home dropdown already is (the Home rule keeps its 34dvh cap). */
     body.sbterm .autoComplete-wrap:not(.isFloating) > .autoComplete {
