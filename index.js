@@ -2,10 +2,12 @@ const MODULE = 'SillyBunny-Terminal-UI';
 const DRAWER_ID = 'sbterm-settings-drawer';
 const BANNER_ID = 'sbterm-banner';
 const STATUS_ID = 'sbterm-statusline';
+const STATUS_DETAILS_ID = 'sbterm-status-details';
+const BOTTOM_BAR_VISIBILITY_KEY = 'sb-bottom-chat-bar-visible';
 const COMMAND_NAME = 'sbterm';
 const HOME_COMMAND_NAME = 'home';
 const HOME_VISIBLE_CLASS = 'sbterm-home-visible';
-const LOGO_URL = '/scripts/extensions/third-party/SillyBunny-Terminal-UI/logo.png';
+const BUNNY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M30 40C28 26 27 12 33 9C39 6 42 20 42 34C44 33 52 33 54 34C54 20 57 6 63 9C69 12 68 26 66 40C74 46 78 54 78 63C78 78 65 88 48 88C31 88 18 78 18 63C18 54 22 46 30 40ZM34 15C32 22 32 29 35 33C38 29 38 20 37 14C36 12 35 13 34 15ZM59 14C58 20 58 29 61 33C64 29 64 22 62 15C61 13 60 12 59 14ZM34 60a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0M53 60a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0M45 69l6 0l-3 4.5z"/></svg>';
 
 const PALETTES = [
     ['phosphor-green', 'Phosphor Green'],
@@ -24,12 +26,14 @@ const PALETTES = [
 ];
 
 const PALETTE_IDS = PALETTES.map(([id]) => id);
-const DEFAULTS = { version: 2, enabled: true, palette: 'phosphor-green', crt: false, minimal: true };
+const DEFAULTS = { version: 2, enabled: true, palette: 'phosphor-green', crt: false, minimal: true, topbarVisible: false, avatarVisible: true, chatTopbarVisible: true, bottomBarVisible: true };
 
 const SHELL_DESTINATIONS = {
     workspace: ['left'],
     presets: ['left', 'presets'],
     api: ['left', 'api'],
+    'open-api': ['left', 'api'],
+    'open-model': ['left', 'api'],
     sampling: ['left', 'sampling'],
     formatting: ['left', 'advanced-formatting'],
     agents: ['left', 'agents'],
@@ -47,6 +51,8 @@ const SHELL_DESTINATIONS = {
     import: ['characters', 'import'],
 };
 
+const destinationLabel = destination => destination.replace(/^open-/, '').replaceAll('-', ' ');
+
 const COMMAND_OPTIONS = [
     ['status', 'Show the current terminal and connection status'],
     ['on', 'Enable Terminal UI'],
@@ -56,23 +62,75 @@ const COMMAND_OPTIONS = [
     ['crt on', 'Enable the optional CRT overlay'],
     ['crt off', 'Disable the CRT overlay'],
     ...PALETTES.map(([id, name]) => [`palette ${id}`, `Use the ${name} palette`]),
-    ...Object.keys(SHELL_DESTINATIONS).map(destination => [destination, `Open ${destination.replace('-', ' ')}`]),
+    ...Object.keys(SHELL_DESTINATIONS)
+        .filter(destination => !destination.startsWith('open-'))
+        .map(destination => [destination, `Open ${destinationLabel(destination)}`]),
     ['search', 'Open global search'],
     ['chat-tools', 'Open recent chat tools'],
+    ['open-chats', 'Open recent chats'],
     ['appearance', 'Open appearance settings'],
-    ['home', 'Return to Home'],
+    ['home', 'Return to the terminal Home'],
     ['conversation', 'Open Conversation Mode'],
     ['roleplay', 'Return to Roleplay Mode'],
+];
+
+/* Top-level /open-* aliases for every page destination. The native /api and
+   /model commands stay untouched; their aliases are /open-api and /open-model,
+   and every other destination gets an /open-<name> command too. */
+const openCommandName = destination => (destination === 'api' || destination.startsWith('open-') ? destination : `open-${destination}`);
+const TOGGLE_COMMANDS = ['hide-topbar', 'open-nav-topbar', 'hide-home', 'hide-avatar', 'show-avatar', 'show-chat-topbar', 'hide-chat-topbar', 'show-bottom-bar', 'hide-bottom-bar'];
+const CONVERSATION_COMMANDS = new Set(['selfie', 'remind', 'schedule', 'summarize', 'ooc']);
+const TOGGLE_CONFIG = {
+    'hide-topbar': { patch: { topbarVisible: false }, success: 'Top bar hidden.' },
+    'open-nav-topbar': { patch: { topbarVisible: true }, success: 'Top bar shown.' },
+    'hide-avatar': { patch: { avatarVisible: false }, success: 'Avatars hidden.' },
+    'show-avatar': { patch: { avatarVisible: true }, success: 'Avatars shown.' },
+    'show-chat-topbar': { patch: { chatTopbarVisible: true }, success: 'Chat top bar shown.' },
+    'hide-chat-topbar': { patch: { chatTopbarVisible: false }, success: 'Chat top bar hidden.' },
+    'show-bottom-bar': { patch: { bottomBarVisible: true }, success: 'Chat bottom bar shown.' },
+    'hide-bottom-bar': { patch: { bottomBarVisible: false }, success: 'Chat bottom bar hidden.' },
+};
+
+const COMMAND_GLOSSARY = [
+    ['/sbterm', 'Configure Terminal UI'],
+    ['/home', 'Return to Terminal Home'],
+    ...Object.keys(SHELL_DESTINATIONS)
+        .filter(destination => destination !== 'api')
+        .map(destination => [`/${openCommandName(destination)}`, `Open ${destinationLabel(destination)}`]),
+    ['/newchat', 'Start a new chat'],
+    ['/search', 'Open global search'],
+    ['/chat-tools', 'Open recent chat tools'],
+    ['/open-chats', 'Open recent chats'],
+    ['/appearance', 'Open appearance settings'],
+    ['/hide-topbar', 'Hide the navigation top bar'],
+    ['/open-nav-topbar', 'Show the navigation top bar'],
+    ['/hide-home', 'Replace native Home with Terminal Home'],
+    ['/hide-avatar', 'Hide chat avatars'],
+    ['/show-avatar', 'Show chat avatars'],
+    ['/show-chat-topbar', 'Show the chat tool bar'],
+    ['/hide-chat-topbar', 'Hide the chat tool bar'],
+    ['/show-bottom-bar', 'Show the chat bottom bar'],
+    ['/hide-bottom-bar', 'Hide the chat bottom bar'],
 ];
 
 let active = false;
 let commandParser = null;
 let registeredCommand = null;
 let registeredHomeCommand = null;
+let registeredTopLevel = [];
 let domController = null;
 let conversationObserver = null;
+let autocompleteObserver = null;
+let conversationAutocomplete = null;
+let conversationAutocompleteInput = null;
+let conversationAutocompletePendingInput = null;
+let composerResizeObserver = null;
 let eventBindings = [];
 let nativeHomeClick = false;
+let chatTopbarObserver = null;
+let chatTopbarObserverTarget = null;
+let capturedHostNodes = [];
+let bottomBarState = null;
 let renderSequence = 0;
 let tokenSequence = 0;
 let lastPromptTokens = null;
@@ -109,6 +167,10 @@ function ensureSettings() {
         palette: PALETTE_IDS.includes(settings.palette) ? settings.palette : DEFAULTS.palette,
         crt: typeof settings.crt === 'boolean' ? settings.crt : DEFAULTS.crt,
         minimal: typeof settings.minimal === 'boolean' ? settings.minimal : DEFAULTS.minimal,
+        topbarVisible: typeof settings.topbarVisible === 'boolean' ? settings.topbarVisible : DEFAULTS.topbarVisible,
+        avatarVisible: typeof settings.avatarVisible === 'boolean' ? settings.avatarVisible : DEFAULTS.avatarVisible,
+        chatTopbarVisible: typeof settings.chatTopbarVisible === 'boolean' ? settings.chatTopbarVisible : DEFAULTS.chatTopbarVisible,
+        bottomBarVisible: typeof settings.bottomBarVisible === 'boolean' ? settings.bottomBarVisible : DEFAULTS.bottomBarVisible,
     };
 
     for (const [key, value] of Object.entries(normalized)) {
@@ -133,6 +195,34 @@ function hideHome() {
     if (typeof document !== 'undefined') document.body?.classList.remove(HOME_VISIBLE_CLASS);
 }
 
+function restoreBottomBar() {
+    if (!bottomBarState) return;
+    let hidden = bottomBarState.hidden;
+    try {
+        const stored = globalThis.localStorage?.getItem?.(BOTTOM_BAR_VISIBILITY_KEY);
+        if (stored === 'true' || stored === 'false') hidden = stored === 'false';
+    } catch {
+        // Fall back to the captured host state when storage is unavailable.
+    }
+    bottomBarState.node?.classList.toggle('displayNone', hidden);
+    bottomBarState = null;
+}
+
+function syncBottomBar(enabled, visible) {
+    if (!enabled) {
+        restoreBottomBar();
+        return;
+    }
+
+    const node = document.getElementById('sb-bottom-chat-bar');
+    if (!node) return;
+    if (bottomBarState?.node !== node) {
+        restoreBottomBar();
+        bottomBarState = { node, hidden: node.classList.contains('displayNone') };
+    }
+    node.classList.toggle('displayNone', !visible);
+}
+
 function apply() {
     if (typeof document === 'undefined' || !document.body) {
         return;
@@ -143,6 +233,12 @@ function apply() {
     document.body.classList.toggle('sbterm', enabled);
     document.body.classList.toggle('sbterm-minimal', enabled && settings.minimal);
     document.body.classList.toggle('sbterm-crt', enabled && settings.crt);
+    document.body.classList.toggle('sbterm-topbar-hidden', enabled && !settings.topbarVisible);
+    document.body.classList.toggle('sbterm-avatar-hidden', enabled && !settings.avatarVisible);
+    document.body.classList.toggle('sbterm-chat-topbar-hidden', enabled && !settings.chatTopbarVisible);
+    document.body.classList.toggle('sbterm-bottom-bar-hidden', enabled && !settings.bottomBarVisible);
+
+    syncBottomBar(enabled, settings.bottomBarVisible);
 
     if (enabled) {
         document.body.dataset.sbtermPalette = settings.palette;
@@ -168,6 +264,13 @@ function updateSettings(patch) {
     }
     if (changed) {
         if ('enabled' in patch || 'minimal' in patch) hideHome();
+        if ('enabled' in patch) {
+            // ponytail: /sbterm off (and the settings drawer) must be fully
+            // reversible: drop the injected UI, hand host bars back, rebuild
+            // on re-enable. Fixes the audit P1 reversibility finding.
+            if (settings.enabled) rebuildDom();
+            else teardownDom();
+        }
         settings.version = DEFAULTS.version;
         save();
         apply();
@@ -224,10 +327,18 @@ function renderDrawer() {
     const drawer = el('div', 'inline-drawer');
     drawer.id = DRAWER_ID;
 
-    const toggle = el('div', 'inline-drawer-toggle inline-drawer-header');
-    toggle.append(el('b', undefined, 'Terminal UI'), el('div', 'inline-drawer-icon fa-solid fa-circle-chevron-down down'));
+    const toggle = el('button', 'inline-drawer-toggle inline-drawer-header');
+    toggle.id = 'sbterm-settings-toggle';
+    toggle.type = 'button';
+    toggle.setAttribute('aria-controls', 'sbterm-settings-content');
+    toggle.setAttribute('aria-expanded', 'false');
+    const icon = el('div', 'inline-drawer-icon fa-solid fa-circle-chevron-down down');
+    icon.id = 'sbterm-settings-icon';
+    toggle.append(el('b', undefined, 'Terminal UI'), icon);
 
     const content = el('div', 'inline-drawer-content sbterm-settings-content');
+    content.id = 'sbterm-settings-content';
+    toggle.addEventListener('click', () => globalThis.setTimeout?.(syncDrawerDisclosure, 0));
     content.append(
         checkboxRow('sbterm-enabled', 'Enable Terminal UI', settings.enabled, value => updateSettings({ enabled: value })),
         selectRow('sbterm-density', 'Interface', [['terminal', 'Terminal'], ['full', 'Full chrome']], settings.minimal ? 'terminal' : 'full', value => updateSettings({ minimal: value === 'terminal' })),
@@ -238,6 +349,12 @@ function renderDrawer() {
 
     drawer.append(toggle, content);
     host.appendChild(drawer);
+}
+
+function syncDrawerDisclosure() {
+    const toggle = document.getElementById('sbterm-settings-toggle');
+    const icon = document.getElementById('sbterm-settings-icon');
+    if (toggle && icon) toggle.setAttribute('aria-expanded', String(icon.classList.contains('up')));
 }
 
 function syncDrawer() {
@@ -274,23 +391,170 @@ function ensureStatusline() {
     banner.id = BANNER_ID;
     banner.hidden = !active || !getSettings().enabled;
 
-    const mascot = el('img', 'sbterm-mascot');
-    mascot.src = LOGO_URL;
-    mascot.alt = '';
-    mascot.setAttribute('aria-hidden', 'true');
+    const mascot = el('button', 'sbterm-mascot sbterm-mascot-button');
+    mascot.type = 'button';
+    mascot.setAttribute('aria-label', 'Open Agents Quick Access');
+    mascot.setAttribute('title', 'Open Agents Quick Access');
+    mascot.innerHTML = BUNNY_SVG;
 
     const copy = el('div', 'sbterm-banner-copy');
     copy.appendChild(el('strong', 'sbterm-banner-title', 'sillybunny terminal'));
 
-    const status = el('div', 'sbterm-statusline');
+    const statusRow = el('div', 'sbterm-status-row');
+    const status = el('span', 'sbterm-statusline');
     status.id = STATUS_ID;
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     status.setAttribute('aria-atomic', 'true');
-    copy.appendChild(status);
+    const details = el('button', 'sbterm-status-details', 'more');
+    details.id = STATUS_DETAILS_ID;
+    details.type = 'button';
+    details.setAttribute('aria-label', 'Show full terminal status');
+    details.setAttribute('aria-describedby', STATUS_ID);
+    statusRow.append(status, details);
+    copy.appendChild(statusRow);
     banner.append(mascot, copy);
     brand.appendChild(banner);
     return status;
+}
+
+function ensureFormMascot() {
+    if (typeof document === 'undefined') return null;
+    const form = document.querySelector('#form_sheld');
+    if (!form) return null;
+    if (!document.querySelector('.sbterm-mascot-form')) {
+        const mascot = el('span', 'sbterm-mascot sbterm-mascot-form');
+        mascot.setAttribute('aria-hidden', 'true');
+        mascot.innerHTML = BUNNY_SVG;
+        form.prepend?.(mascot);
+    }
+    if (!document.querySelector('.sbterm-command-glossary')) {
+        const glossary = el('section', 'sbterm-command-glossary');
+        const heading = el('h2', 'sbterm-command-glossary-title', 'Commands');
+        heading.id = 'sbterm-command-glossary-title';
+        glossary.setAttribute('aria-labelledby', heading.id);
+        const list = el('ul', 'sbterm-command-glossary-list');
+        for (const [command, help] of COMMAND_GLOSSARY) {
+            const row = el('li', 'sbterm-command-glossary-row');
+            row.append(
+                el('code', 'sbterm-command-glossary-command', command),
+                el('span', 'sbterm-command-glossary-help', help),
+            );
+            list.appendChild(row);
+        }
+        glossary.append(heading, list);
+        form.appendChild(glossary);
+    }
+    return form;
+}
+
+const CHAT_TOPBAR_ID = 'sbterm-chat-topbar';
+
+function ensureChatTopbar() {
+    if (typeof document === 'undefined') return null;
+    const form = document.querySelector('#form_sheld');
+    if (!form) return null;
+    let topbar = document.getElementById(CHAT_TOPBAR_ID);
+    if (!topbar) {
+        topbar = el('div', 'sbterm-chat-topbar');
+        topbar.id = CHAT_TOPBAR_ID;
+        form.insertBefore?.(topbar, form.firstChild);
+    }
+
+    // ponytail: host extensions (Guided Generations, Quick Replies) build their
+    // bars inside #send_form whenever they want; a live observer re-captures
+    // them whenever they appear, so nothing is missed after a 30s window.
+    const capture = selector => {
+        const node = document.querySelector(selector);
+        if (!node || node.parentElement === topbar) return;
+        const record = { node, parent: node.parentElement, sibling: node.nextSibling };
+        const previous = capturedHostNodes.findIndex(item => item.node === node);
+        if (previous === -1) capturedHostNodes.push(record);
+        else capturedHostNodes[previous] = record;
+        topbar.appendChild(node);
+    };
+
+    const target = document.getElementById('send_form') ?? form;
+    if (chatTopbarObserverTarget !== target) {
+        chatTopbarObserver?.disconnect();
+        chatTopbarObserver = null;
+        chatTopbarObserverTarget = target;
+    }
+    if (!chatTopbarObserver && typeof MutationObserver !== 'undefined') {
+        chatTopbarObserver = new MutationObserver(() => {
+            capture('#qr--bar');
+            capture('#gg-action-button-container');
+        });
+        chatTopbarObserver.observe(target, { childList: true, subtree: true });
+    }
+    capture('#qr--bar');
+    capture('#gg-action-button-container');
+    return topbar;
+}
+
+function restoreHostNodes() {
+    const topbar = document.getElementById(CHAT_TOPBAR_ID);
+    for (const record of capturedHostNodes.splice(0)) {
+        const { node, parent, sibling } = record;
+        if (!node || !parent || parent.isConnected === false || (topbar && node.parentElement !== topbar)) continue;
+        if (typeof parent.insertBefore === 'function') {
+            parent.insertBefore(node, sibling?.parentNode === parent ? sibling : null);
+        } else {
+            parent.appendChild(node);
+        }
+    }
+}
+
+function teardownDom() {
+    if (typeof document === 'undefined') return;
+    chatTopbarObserver?.disconnect();
+    chatTopbarObserver = null;
+    chatTopbarObserverTarget = null;
+    conversationObserver?.disconnect();
+    conversationObserver = null;
+    autocompleteObserver?.disconnect();
+    autocompleteObserver = null;
+    conversationAutocomplete?.hide?.();
+    composerResizeObserver?.disconnect();
+    composerResizeObserver = null;
+    autocompleteAlignQueued = false;
+    restoreBottomBar();
+    restoreHostNodes();
+    clearHomeAutocompleteAlignment();
+    document.querySelector?.('#form_sheld')?.style?.removeProperty?.('--sbterm-composer-row-width');
+    document.getElementById(CHAT_TOPBAR_ID)?.remove();
+    document.getElementById(BANNER_ID)?.remove();
+    document.querySelector('.sbterm-mascot-form')?.remove();
+    document.querySelector('.sbterm-command-glossary')?.remove();
+}
+
+function rebuildDom() {
+    if (!active || !getSettings().enabled) return;
+    ensureStatusline();
+    ensureFormMascot();
+    ensureChatTopbar();
+    observeComposerRow();
+    observeConversationTimeline();
+    observeAutocomplete();
+    void ensureConversationAutocomplete();
+}
+
+function alignChatBars() {
+    if (typeof document === 'undefined') return;
+    const form = document.querySelector?.('#form_sheld');
+    const rect = document.getElementById('nonQRFormItems')?.getBoundingClientRect?.();
+    if (!form?.style || !rect) return;
+    form.style.setProperty('--sbterm-composer-row-width', `${rect.width}px`);
+}
+
+function observeComposerRow() {
+    composerResizeObserver?.disconnect();
+    composerResizeObserver = null;
+    alignChatBars();
+    const row = typeof document === 'undefined' ? null : document.getElementById('nonQRFormItems');
+    if (!active || !getSettings().enabled || !row || typeof ResizeObserver === 'undefined') return;
+    composerResizeObserver = new ResizeObserver(alignChatBars);
+    composerResizeObserver.observe(row);
 }
 
 function cleanStatusPart(value, fallback = '-') {
@@ -361,10 +625,10 @@ function isConversationMode() {
 }
 
 function currentRunState(connection, conversationMode) {
+    if (connection.disconnected) return 'disconnected';
     if (conversationMode) {
         return document.querySelector('.sb-conversation-typing-indicator, .sb-conversation-image-pending') ? 'generating' : 'idle';
     }
-    if (connection.disconnected) return 'disconnected';
     if (document.body?.dataset.generating || document.getElementById('send_form')?.classList.contains('sb-generating-controls')) return 'generating';
     if (document.getElementById('form_sheld')?.classList.contains('isExecutingCommandsFromChatInput')) return 'command';
     return 'idle';
@@ -373,6 +637,12 @@ function currentRunState(connection, conversationMode) {
 async function renderStatusline() {
     if (!active || typeof document === 'undefined') {
         return '';
+    }
+
+    const settings = getSettings();
+    if (!settings.enabled) {
+        lastStatusText = `terminal:off | ui:${settings.minimal ? 'terminal' : 'full'} | palette:${settings.palette}`;
+        return lastStatusText;
     }
 
     const status = ensureStatusline();
@@ -395,15 +665,19 @@ async function renderStatusline() {
     const prompt = !conversationMode && identity === lastPromptIdentity ? lastPromptTokens : null;
     const locationPrefix = conversationMode ? 'dm' : 'chat';
     const runState = currentRunState(connection, conversationMode);
-    const settings = getSettings();
-
-    lastStatusText = settings.enabled
-        ? `${locationPrefix}:${currentChatLabel(context)} | api:${cleanStatusPart(connectionText)} | run:${runState} | prompt:${conversationMode ? 'n/a' : formatCount(prompt)}/${formatCount(maxContext)}`
-        : `terminal:off | ui:${settings.minimal ? 'terminal' : 'full'} | palette:${settings.palette}`;
-
-    status.textContent = lastStatusText;
+    const nextStatusText = `run:${runState} | ${locationPrefix}:${currentChatLabel(context)} | api:${cleanStatusPart(connectionText)} | prompt:${conversationMode ? 'n/a' : formatCount(prompt)}/${formatCount(maxContext)}`;
+    lastStatusText = nextStatusText;
+    if (status.textContent !== nextStatusText) status.textContent = nextStatusText;
     status.title = lastStatusText;
     status.dataset.state = runState;
+    const details = document.getElementById(STATUS_DETAILS_ID);
+    if (details) {
+        const disconnected = runState === 'disconnected';
+        details.textContent = disconnected ? 'connect' : 'more';
+        details.dataset.action = disconnected ? 'connect' : 'status';
+        details.setAttribute('aria-label', disconnected ? 'Open API connection settings' : 'Show full terminal status');
+        details.title = lastStatusText;
+    }
     return lastStatusText;
 }
 
@@ -439,6 +713,7 @@ async function recordPromptTokens(generateData, dryRun) {
         if (sequence === tokenSequence) {
             lastPromptTokens = null;
             lastPromptIdentity = '';
+            void renderStatusline();
         }
         console.warn('Terminal UI could not count the assembled prompt', error);
     }
@@ -464,6 +739,19 @@ function nextFrame() {
     return new Promise(resolve => (globalThis.requestAnimationFrame ?? globalThis.setTimeout)(resolve));
 }
 
+async function openQuickAccess() {
+    const shell = globalThis.SillyBunnyShell;
+    if (typeof shell?.openTab !== 'function') {
+        notify('Quick Access is unavailable.', 'warning');
+        return false;
+    }
+    shell.openTab('left', 'agents');
+    await nextFrame();
+    await nextFrame();
+    document.querySelector("#ica--agentTabs > .ica--agent-tab[data-tab='quick']")?.click();
+    return true;
+}
+
 async function openAppearance() {
     const shell = globalThis.SillyBunnyShell;
     if (typeof shell?.openTab !== 'function') return false;
@@ -476,7 +764,7 @@ async function openAppearance() {
         section.querySelector(':scope > .inline-drawer-toggle')?.click();
         await nextFrame();
     }
-    document.getElementById('UI-presets-block')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    document.getElementById('UI-presets-block')?.scrollIntoView({ block: 'start' });
     return true;
 }
 
@@ -490,7 +778,7 @@ async function openConversation() {
     return Boolean(await conversation.openConversationWorkspaceFromWelcome?.());
 }
 
-async function showHome() {
+async function showHomepage() {
     const home = document.getElementById('sb-home-toggle');
     if (!home) return false;
 
@@ -508,6 +796,26 @@ async function showHome() {
         nativeHomeClick = false;
     }
     return true;
+}
+
+async function showTerminalHome() {
+    if (!document.querySelector('.welcomePanel')) {
+        const closeCurrentChat = ctx()?.closeCurrentChat;
+        if (typeof closeCurrentChat !== 'function' || !await closeCurrentChat()) return false;
+    }
+
+    if (!document.querySelector('.welcomePanel')) return false;
+    hideHome();
+    return true;
+}
+
+async function openChats() {
+    if (!await showHomepage()) return false;
+    const showMore = document.querySelector('.showMoreChats');
+    if (showMore && !showMore.classList.contains('rotated')) showMore.click();
+    const recentChats = document.querySelector('.welcomeRecentShell');
+    recentChats?.scrollIntoView({ block: 'start' });
+    return Boolean(recentChats);
 }
 
 async function openDestination(destination) {
@@ -528,10 +836,14 @@ async function openDestination(destination) {
             if (typeof shell?.openChatTools !== 'function') return false;
             shell.openChatTools();
             return true;
+        case 'open-chats':
+            return openChats();
         case 'appearance':
             return openAppearance();
         case 'home':
-            return showHome();
+            return showTerminalHome();
+        case 'open-homepage':
+            return showHomepage();
         case 'conversation':
             return openConversation();
         case 'roleplay': {
@@ -598,7 +910,7 @@ async function runSbtermCommand(_named, unnamed) {
 
 async function runHomeCommand() {
     if (!active) return 'Terminal UI is disabled.';
-    const opened = await showHome();
+    const opened = await showTerminalHome();
     if (!opened) notify('Home is unavailable.', 'warning');
     return opened ? 'home' : 'home unavailable';
 }
@@ -609,6 +921,9 @@ function unregisterCommands() {
     }
     if (registeredHomeCommand && commandParser?.commands?.[HOME_COMMAND_NAME] === registeredHomeCommand) {
         delete commandParser.commands[HOME_COMMAND_NAME];
+    }
+    for (const { name, command } of registeredTopLevel.splice(0)) {
+        if (commandParser?.commands?.[name] === command) delete commandParser.commands[name];
     }
     registeredCommand = null;
     registeredHomeCommand = null;
@@ -674,7 +989,7 @@ function registerHomeCommand() {
     const command = SlashCommand.fromProps({
         name: HOME_COMMAND_NAME,
         callback: runHomeCommand,
-        helpString: 'Reveal the native SillyBunny Home page hidden by terminal density.',
+        helpString: 'Return to the terminal Home screen; use /open-homepage to reveal the native SillyBunny Home page.',
         returns: 'home or home unavailable',
     });
 
@@ -694,14 +1009,79 @@ function registerHomeCommand() {
 function registerCommands() {
     registerCommand();
     registerHomeCommand();
+    registerTopLevelCommands();
+}
+
+function runDestinationCommand(destination) {
+    return async () => {
+        if (!active) return 'Terminal UI is disabled.';
+        const opened = await openDestination(destination);
+        if (!opened) notify(`Could not open ${destination}.`, 'warning');
+        return opened ? destination : `${destination} unavailable`;
+    };
+}
+
+function runToggleCommand(name) {
+    return async () => {
+        if (!active) return 'Terminal UI is disabled.';
+        if (name === 'hide-home') {
+            hideHome();
+            notify('Home hidden.');
+            return 'home hidden';
+        }
+        const config = TOGGLE_CONFIG[name];
+        updateSettings(config.patch);
+        notify(config.success, 'success');
+        return String(config.patch[Object.keys(config.patch)[0]]);
+    };
+}
+
+function registerTopLevelCommands() {
+    if (!active || registeredTopLevel.length) return;
+    const context = ctx();
+    const parser = context?.SlashCommandParser;
+    const SlashCommand = context?.SlashCommand;
+    if (!parser || !SlashCommand) return;
+
+    const register = (name, callback, helpString) => {
+        if (parser.commands?.[name]) return;
+        try {
+            const command = SlashCommand.fromProps({ name, callback, helpString, returns: 'the command result' });
+            parser.addCommandObject(command);
+            registeredTopLevel.push({ name, command });
+        } catch (error) {
+            console.error(`Terminal UI could not register /${name}`, error);
+        }
+    };
+
+    for (const destination of Object.keys(SHELL_DESTINATIONS)) {
+        const name = openCommandName(destination);
+        register(name, runDestinationCommand(destination), `Open the ${destinationLabel(destination)} panel.`);
+    }
+    for (const name of ['search', 'chat-tools', 'open-chats', 'appearance', 'open-homepage']) {
+        register(name, runDestinationCommand(name), `Open the ${destinationLabel(name)} panel.`);
+    }
+    for (const name of TOGGLE_COMMANDS) {
+        register(name, runToggleCommand(name), name === 'hide-home'
+            ? 'Replace the native Home page with Terminal Home.'
+            : `Toggle Terminal UI: ${name.replaceAll('-', ' ')}.`);
+    }
 }
 
 function isOwnedCommand(input) {
     const command = String(input ?? '').trim();
+    const name = command.match(/^\/([^\s|]+)/)?.[1]?.toLowerCase();
+    const topLevel = registeredTopLevel.find(item => item.name === name);
     return active && (
-        (registeredCommand && /^\/sbterm(?:\s|$)/.test(command)) ||
-        (registeredHomeCommand && /^\/home\s*$/.test(command))
+        (registeredCommand && commandParser?.commands?.[COMMAND_NAME] === registeredCommand && /^\/sbterm(?:\s|$)/.test(command)) ||
+        (registeredHomeCommand && commandParser?.commands?.[HOME_COMMAND_NAME] === registeredHomeCommand && /^\/home\s*$/.test(command)) ||
+        (topLevel && commandParser?.commands?.[name] === topLevel.command)
     );
+}
+
+function isRegisteredConversationCommand(command, input) {
+    const name = String(command ?? '').trim().match(/^\/([^\s|]+)/)?.[1]?.toLowerCase();
+    return active && input?.id === 'sb_conversation_input' && name && !CONVERSATION_COMMANDS.has(name) && Boolean(ctx()?.SlashCommandParser?.commands?.[name]);
 }
 
 function clearCommandInput(input) {
@@ -711,26 +1091,53 @@ function clearCommandInput(input) {
 
 function executeOwnedCommand(event, input) {
     const command = input.value.trim();
-    if (!isOwnedCommand(command)) return false;
+    if (!isOwnedCommand(command) && !isRegisteredConversationCommand(command, input)) return false;
+    const context = ctx();
+    const execute = context?.executeSlashCommandsWithOptions;
+    if (typeof execute !== 'function') return false;
     event.preventDefault();
     event.stopImmediatePropagation();
     clearCommandInput(input);
-    Promise.resolve(ctx()?.executeSlashCommandsWithOptions?.(command, {
-        handleParserErrors: true,
+    const recover = error => {
+        if (error) console.error('Terminal UI could not execute the command', error);
+        const restored = input.value === '';
+        if (restored) {
+            input.value = command;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus?.();
+        }
+        notify(restored ? 'Command failed. Your command was restored.' : 'Command failed. Your current input was kept.', 'error');
+    };
+    Promise.resolve(execute.call(context, command, {
+        handleParserErrors: false,
         handleExecutionErrors: true,
         source: MODULE,
-    })).catch(error => {
-        console.error('Terminal UI could not execute the command', error);
-        notify('Command failed. See the browser console.', 'error');
-    });
+    })).then(result => {
+        if (result?.isError) recover();
+    }).catch(recover);
     return true;
 }
 
 function onDocumentClick(event) {
+    globalThis.setTimeout?.(syncDrawerDisclosure, 0);
+    const details = event.target?.closest?.('.sbterm-status-details');
+    if (details) {
+        if (details.dataset.action === 'connect') {
+            void openDestination('open-api');
+            return;
+        }
+        const status = document.getElementById('sbterm-statusline');
+        if (status?.textContent || status?.title) notify(status.textContent || status.title);
+        return;
+    }
+    if (event.type === 'click' && event.target?.closest?.('.sbterm-mascot-button')) {
+        void openQuickAccess();
+        return;
+    }
     if (event.type === 'click' && !nativeHomeClick && document.body?.classList.contains('sbterm-minimal') && event.target?.closest?.('#sb-home-toggle')) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        void showHome();
+        void showHomepage();
         return;
     }
     if (!event.target?.closest?.('#send_but') && !event.target?.closest?.('#gg_simple_send_button')) return;
@@ -748,6 +1155,10 @@ function onConversationSubmit(event) {
 function onCommandKeydown(event) {
     const conversation = event.target?.id === 'sb_conversation_input';
     if (!conversation && event.target?.id !== 'send_textarea') return;
+    if (conversation && event.key === 'Enter' && conversationAutocompleteInput === event.target && conversationAutocomplete?.isActive) {
+        void conversationAutocomplete.handleKeyDown(event);
+        if (event.defaultPrevented) return;
+    }
     if (event.key !== 'Enter' || event.isComposing) return;
     if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
     if (!ctx()?.shouldSendOnEnter?.()) return;
@@ -758,7 +1169,7 @@ function onCommandKeydown(event) {
 function observeConversationTimeline() {
     conversationObserver?.disconnect();
     conversationObserver = null;
-    if (!active || typeof MutationObserver === 'undefined') return;
+    if (!active || !getSettings().enabled || typeof MutationObserver === 'undefined') return;
     const timeline = document.getElementById('sb_conversation_timeline');
     if (!timeline) return;
     conversationObserver = new MutationObserver(() => void renderStatusline());
@@ -768,8 +1179,110 @@ function observeConversationTimeline() {
 function queueConversationStatusRefresh() {
     globalThis.setTimeout?.(() => {
         observeConversationTimeline();
+        void ensureConversationAutocomplete();
         void renderStatusline();
     }, 0);
+}
+
+async function ensureConversationAutocomplete() {
+    const input = typeof document === 'undefined' ? null : document.getElementById('sb_conversation_input');
+    if (!active || !getSettings().enabled || !isConversationMode() || !input) {
+        conversationAutocomplete?.hide?.();
+        return;
+    }
+    if (conversationAutocompleteInput === input || conversationAutocompletePendingInput === input) return;
+
+    conversationAutocompletePendingInput = input;
+    try {
+        const contextInitializer = ctx()?.setSlashCommandAutoComplete;
+        const initializer = typeof contextInitializer === 'function'
+            ? contextInitializer
+            : (await import('/scripts/slash-commands.js')).setSlashCommandAutoComplete;
+        if (typeof initializer !== 'function' || !active || !getSettings().enabled || !isConversationMode() || !input.isConnected) return;
+
+        const autocomplete = await initializer(input);
+        if (!autocomplete) return;
+        const shouldActivate = autocomplete.checkIfActivate.bind(autocomplete);
+        autocomplete.checkIfActivate = () => active && getSettings().enabled && isConversationMode() && input.isConnected && shouldActivate();
+        if (!active || !getSettings().enabled || !isConversationMode() || !input.isConnected) {
+            autocomplete.hide?.();
+            return;
+        }
+        conversationAutocomplete?.hide?.();
+        conversationAutocomplete = autocomplete;
+        conversationAutocompleteInput = input;
+    } catch (error) {
+        console.error('Terminal UI could not enable Conversation slash previews', error);
+    } finally {
+        if (conversationAutocompletePendingInput === input) conversationAutocompletePendingInput = null;
+    }
+}
+
+let autocompleteAlignQueued = false;
+
+function alignHomeAutocomplete() {
+    if (typeof document === 'undefined') return;
+    const wraps = document.querySelectorAll?.('.autoComplete-wrap:not(.isFloating), .autoComplete-detailsWrap.full:not(.isFloating)') ?? [];
+    const input = !isConversationMode() && !document.body?.classList.contains(HOME_VISIBLE_CLASS)
+        ? document.querySelector?.('#sheld:has(#chat .welcomePanel) #send_textarea')
+        : null;
+    if (!input) {
+        for (const wrap of wraps) {
+            wrap.style?.removeProperty?.('--sbterm-autocomplete-left');
+            wrap.style?.removeProperty?.('--sbterm-autocomplete-right');
+        }
+        return;
+    }
+    if (!wraps.length) return;
+
+    const rect = input.getBoundingClientRect?.();
+    const viewportLeft = globalThis.visualViewport?.offsetLeft ?? 0;
+    const viewportWidth = globalThis.visualViewport?.width ?? globalThis.innerWidth ?? document.documentElement?.clientWidth ?? rect?.right ?? 0;
+    for (const wrap of wraps) {
+        if (rect) {
+            wrap.style?.setProperty?.('--sbterm-autocomplete-left', `${Math.max(0, rect.left - viewportLeft)}px`);
+            wrap.style?.setProperty?.('--sbterm-autocomplete-right', `${Math.max(0, viewportLeft + viewportWidth - rect.right)}px`);
+        } else {
+            wrap.style?.removeProperty?.('--sbterm-autocomplete-left');
+            wrap.style?.removeProperty?.('--sbterm-autocomplete-right');
+        }
+    }
+}
+
+function clearHomeAutocompleteAlignment() {
+    if (typeof document === 'undefined') return;
+    for (const wrap of document.querySelectorAll?.('.autoComplete-wrap:not(.isFloating), .autoComplete-detailsWrap.full:not(.isFloating)') ?? []) {
+        wrap.style?.removeProperty?.('--sbterm-autocomplete-left');
+        wrap.style?.removeProperty?.('--sbterm-autocomplete-right');
+    }
+}
+
+function queueAlignHomeAutocomplete() {
+    if (autocompleteAlignQueued) return;
+    autocompleteAlignQueued = true;
+    // ponytail: the host appends autocomplete to <body>, so the observer must
+    // watch body, but the callback is now a cheap once-per-frame no-op unless
+    // the terminal Home is actually on screen (audit P2 perf finding).
+    const align = () => {
+        autocompleteAlignQueued = false;
+        alignHomeAutocomplete();
+        void ensureConversationAutocomplete();
+    };
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+        globalThis.requestAnimationFrame(align);
+    } else {
+        globalThis.setTimeout?.(align, 0);
+    }
+}
+
+function observeAutocomplete() {
+    autocompleteObserver?.disconnect();
+    autocompleteObserver = null;
+    if (!active || !getSettings().enabled || typeof MutationObserver === 'undefined' || !document.body) return;
+    autocompleteObserver = new MutationObserver(queueAlignHomeAutocomplete);
+    autocompleteObserver.observe(document.body, { childList: true, subtree: true });
+    alignHomeAutocomplete();
+    void ensureConversationAutocomplete();
 }
 
 function bindDomEvents() {
@@ -777,10 +1290,14 @@ function bindDomEvents() {
     domController = new AbortController();
     const options = { capture: true, signal: domController.signal };
     document.addEventListener('click', onDocumentClick, options);
-    document.addEventListener('touchend', onDocumentClick, options);
     document.addEventListener('submit', onConversationSubmit, options);
     document.addEventListener('keydown', onCommandKeydown, options);
     globalThis.addEventListener?.('sb:conversation-workspace-state-changed', queueConversationStatusRefresh, { signal: domController.signal });
+    globalThis.addEventListener?.('resize', alignHomeAutocomplete, { signal: domController.signal });
+    globalThis.addEventListener?.('resize', alignChatBars, { signal: domController.signal });
+    globalThis.visualViewport?.addEventListener?.('resize', alignHomeAutocomplete, { signal: domController.signal });
+    globalThis.visualViewport?.addEventListener?.('scroll', alignHomeAutocomplete, { signal: domController.signal });
+    observeAutocomplete();
 }
 
 function bindHostEvents() {
@@ -800,11 +1317,13 @@ function bindHostEvents() {
         if (!active) return;
         renderDrawer();
         registerCommands();
-        ensureStatusline();
-        observeConversationTimeline();
+        if (getSettings().enabled) rebuildDom();
+        else teardownDom();
         apply();
     };
-    const rerender = () => void renderStatusline();
+    const rerender = () => {
+        void renderStatusline();
+    };
     const invalidate = () => invalidatePromptTokens();
     const chatChanged = () => {
         hideHome();
@@ -830,12 +1349,18 @@ function unbindEvents() {
     domController = null;
     conversationObserver?.disconnect();
     conversationObserver = null;
+    autocompleteObserver?.disconnect();
+    autocompleteObserver = null;
+    composerResizeObserver?.disconnect();
+    composerResizeObserver = null;
 }
 
 function init() {
     if (active) {
         renderDrawer();
         registerCommands();
+        if (getSettings().enabled) rebuildDom();
+        else teardownDom();
         apply();
         return;
     }
@@ -848,7 +1373,8 @@ function init() {
     bindDomEvents();
     registerCommands();
     renderDrawer();
-    ensureStatusline();
+    if (getSettings().enabled) rebuildDom();
+    else teardownDom();
     apply();
 }
 
@@ -858,11 +1384,12 @@ function deactivate() {
     tokenSequence += 1;
     unregisterCommands();
     unbindEvents();
+    teardownDom();
 
     if (typeof document !== 'undefined') {
         document.getElementById(DRAWER_ID)?.remove();
         document.getElementById(BANNER_ID)?.remove();
-        document.body?.classList.remove('sbterm', 'sbterm-minimal', 'sbterm-crt', HOME_VISIBLE_CLASS);
+        document.body?.classList.remove('sbterm', 'sbterm-minimal', 'sbterm-crt', HOME_VISIBLE_CLASS, 'sbterm-topbar-hidden', 'sbterm-avatar-hidden', 'sbterm-chat-topbar-hidden', 'sbterm-bottom-bar-hidden');
         if (document.body) delete document.body.dataset.sbtermPalette;
     }
 }

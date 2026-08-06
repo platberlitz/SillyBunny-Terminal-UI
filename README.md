@@ -2,7 +2,32 @@
 
 A command-first interface for [SillyBunny](https://github.com/SillyBunnyTeam/SillyBunny). It keeps the native chat prompt and slash-command system, then reduces the surrounding UI to a tmux-style statusline, flat transcript, and fzf-like command results.
 
-![Terminal UI chat view](screenshot.png)
+## Screenshots
+
+<table>
+  <tr>
+    <td colspan="2">
+      <strong>Terminal Home</strong><br>
+      <img src="screenshots/terminal-home.webp" alt="Terminal Home with the statusline, prompt, and scrollable command reference">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>Slash-command preview</strong><br>
+      <img src="screenshots/slash-command-preview.webp" alt="Native slash-command preview above the Terminal Home prompt">
+    </td>
+    <td width="50%">
+      <strong>Workspace navigation</strong><br>
+      <img src="screenshots/workspace-navigation.webp" alt="SillyBunny API workspace styled by Terminal UI">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <strong>Mobile Home</strong><br>
+      <img src="screenshots/mobile-home.webp" alt="Terminal Home at a narrow mobile viewport" width="300">
+    </td>
+  </tr>
+</table>
 
 ## Interaction
 
@@ -12,11 +37,11 @@ The normal SillyBunny composer remains the only prompt:
 - A leading `/` uses SillyBunny slash commands and autocomplete.
 - `Alt+Up` and `Alt+Down` use native input history.
 - `Ctrl+Space` opens or expands native command autocomplete.
-- Terminal density starts as a centered, prompt-only REPL; `/home` reveals the native Home page when needed.
-- The empty state shows a Claude Code-style guide next to the prompt mascot: `/home`, `/newchat`, `/chat-manager`, `/sbterm characters`, `/sbterm groups`, and `/sbterm`.
-- The bottom chat-management bar is removed. Touch layouts retain the native 44px send control because Enter-to-send is disabled there by default.
+- The native Home is replaced by a centered, prompt-only REPL in both interface densities; `/home` and `/hide-home` return to Terminal Home, while `/open-homepage` explicitly reveals SillyBunny's native Home when needed.
+- The empty state keeps a compact, scrollable command reference next to the prompt; typing `/` still opens native slash autocomplete.
+- In active chats the chat toolbar (Quick Replies, Guided Generations) and the bottom chat-management bar are available and toggleable via `/show-chat-topbar`, `/hide-chat-topbar`, `/show-bottom-bar`, and `/hide-bottom-bar`; both stay hidden on the terminal Home. Terminal UI preserves the native send control whenever SillyBunny exposes it, including for desktop users who disable Enter-to-send.
 
-Terminal density is enabled by default. It removes optional composer controls and keeps only conditional stop/script controls plus mobile send. Run `/sbterm ui full` at any time to restore the complete host chrome.
+Terminal density is enabled by default. It removes optional composer controls while retaining native send and conditional stop/script controls. Run `/sbterm ui full` at any time to restore the complete host chrome.
 
 ## `/sbterm`
 
@@ -30,21 +55,23 @@ Terminal UI adds `/sbterm` and `/home` and does not replace native commands such
 | `/sbterm palette <slug>` | Select one of the 13 palettes |
 | `/sbterm crt on` / `/sbterm crt off` | Toggle the optional CRT overlay |
 | `/sbterm <destination>` | Open a SillyBunny shell or workspace |
-| `/home` | Reveal the native Home page hidden by terminal density |
+| `/home` | Return to the terminal Home screen (`/open-homepage` shows the native Home page) |
 
 Destinations: `workspace`, `presets`, `api`, `sampling`, `formatting`, `agents`, `customize`, `settings`, `extensions`, `background`, `server`, `logs`, `characters`, `groups`, `editor`, `world-info`, `persona`, `import`, `search`, `chat-tools`, `appearance`, `home`, `conversation`, and `roleplay`.
 
-The same `/sbterm` command works from Conversation Mode. Its existing `/selfie`, `/remind`, `/schedule`, `/summarize`, `/ooc`, and normal message behavior are left untouched.
+Every destination also has a top-level alias: `/open-workspace`, `/open-presets`, `/open-api`, `/open-model`, and so on. Visibility toggles: `/hide-topbar`, `/open-nav-topbar`, `/hide-home`, `/hide-avatar`, `/show-avatar`, `/show-chat-topbar`, `/hide-chat-topbar`, `/show-bottom-bar`, and `/hide-bottom-bar`.
+
+The same slash-command autocomplete and `/sbterm` command work from Conversation Mode. Its existing `/selfie`, `/remind`, `/schedule`, `/summarize`, `/ooc`, and normal message behavior are left untouched.
 
 ## Statusline
 
 The top line reports real host state, for example:
 
 ```text
-chat:Nahida/Rooftop Talk | api:openrouter/claude-3.7 | run:idle | prompt:11.8k/32.8k
+run:idle | chat:Nahida/Rooftop Talk | api:openrouter/claude-3.7 | prompt:11.8k/32.8k
 ```
 
-Prompt tokens are counted from the last fully assembled request. Conversation Mode can use a scoped connection, so it reports `prompt:n/a` rather than showing stale Roleplay data.
+The run state comes first so it survives truncation. When disconnected, the line starts with `run:disconnected` and the adjacent **connect** button opens API settings. **more** reveals the complete status as a toast. Prompt tokens are counted from the last fully assembled request. Conversation Mode can use a scoped connection, so it reports `prompt:n/a` rather than showing stale Roleplay data.
 
 ## Palettes
 
