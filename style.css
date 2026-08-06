@@ -262,10 +262,24 @@ body.sbterm {
     --sb-radius-lg: 0;
     --sb-radius-xl: 0;
     --sb-radius-button: 0;
+    --sbterm-prose-width: 78ch;
     --sb-shell-surface: var(--sbterm-bg);
     --sb-shell-main-bg: var(--sbterm-bg);
     --sb-shell-nav-bg: var(--sbterm-bg-alt);
     --sb-shell-header-bg: var(--sbterm-bg-alt);
+    /* The host's mobile shell paints #top-bar/#send_form/#sb-chatbar from
+       these vars, which it RESOLVES AT :root — above body, so the §2 remap
+       never reaches them and light palettes got a hardcoded dark top bar.
+       Redeclaring them here makes them resolve against the terminal tokens. */
+    --sb-mobile-default-surface-solid: var(--sbterm-bg-alt);
+    --sb-mobile-default-card-solid: var(--sbterm-bg-alt);
+    --sb-mobile-default-input-solid: var(--sbterm-bg-alt);
+    --sb-topbar-surface-bg: var(--sbterm-bg-alt);
+    --sb-chatbar-surface-bg: var(--sbterm-bg-alt);
+    --sb-composer-surface-bg: var(--sbterm-bg);
+    --sb-chat-surface-source: var(--sbterm-bg);
+    --sb-mobile-overlay-bg: var(--sbterm-bg);
+    --sb-mobile-panel-bg: var(--sbterm-bg);
     --sb-card-bg: var(--sbterm-bg-alt);
     --sb-surface-elevated: var(--sbterm-bg-alt);
     --sb-surface-elevated-soft: var(--sbterm-bg-alt);
@@ -447,7 +461,7 @@ body.sbterm #sbterm-statusline {
     padding: 6px 10px;
     overflow: hidden;
     color: var(--sbterm-fg-dim);
-    font-size: clamp(0.75rem, 1vw, 0.875rem);
+    font-size: clamp(calc(var(--mainFontSize, 15px) * 0.8), 1vw, calc(var(--mainFontSize, 15px) * 0.93));
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     letter-spacing: 0.01em;
@@ -463,7 +477,7 @@ body.sbterm .sbterm-status-details {
     border: 0;
     background: transparent;
     color: var(--sbterm-fg-dim);
-    font-size: 0.8125rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.87);
     text-decoration: underline;
     text-underline-offset: 0.18em;
     cursor: pointer;
@@ -519,8 +533,9 @@ body.sbterm .sb-search-results {
 }
 
 /* 5. Transcript */
-/* ponytail: the host defaults --sheldWidth to 50vw; a CLI shouldn't run in half a screen */
-body.sbterm {
+/* ponytail: the host defaults --sheldWidth to 50vw; a CLI shouldn't run in half a
+   screen. Minimal density only — Full chrome respects the host chat-width slider. */
+body.sbterm.sbterm-minimal {
     --sheldWidth: min(100%, 140rem);
 }
 
@@ -661,7 +676,7 @@ body.sbterm #sbterm-chat-topbar :is(.stih--button, .gg-action-button) {
     max-block-size: 34px !important;
     flex-basis: 34px !important;
     padding: 0 !important;
-    font-size: 0.78rem !important;
+    font-size: calc(var(--mainFontSize, 15px) * 0.83) !important;
 }
 
 body.sbterm #sbterm-chat-topbar .stih--button {
@@ -671,7 +686,7 @@ body.sbterm #sbterm-chat-topbar .stih--button {
 body.sbterm #sbterm-chat-topbar .qr--button {
     margin-block: 0;
     padding: 1px 9px;
-    font-size: 0.72rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.77);
     line-height: 1.6;
 }
 
@@ -715,6 +730,13 @@ body.sbterm #chat .mes_block {
     padding: 0 !important;
 }
 
+/* Monospace runs unreadable past ~80ch; cap prose in BOTH densities
+   (audit: full chrome measured 184-column lines at 1920px). */
+body.sbterm #chat .mes .mes_block {
+    max-inline-size: var(--sbterm-prose-width) !important;
+    margin-inline: auto !important;
+}
+
 body.sbterm #chat .ch_name {
     min-block-size: 1.4em;
     display: flex;
@@ -723,18 +745,21 @@ body.sbterm #chat .ch_name {
     margin-block-end: 4px;
 }
 
-body.sbterm #chat .ch_name::before {
+/* The glyph rides on the name itself, not the row: as a separate flex item
+   it wrapped onto an orphan line whenever name + timestamp + buttons
+   overflowed the row (audit: every Ripple message). */
+body.sbterm #chat .ch_name .name_text::before {
     content: '> ' / '';
     color: var(--sbterm-accent2);
     font-weight: 800;
 }
 
-body.sbterm #chat .mes[is_user='true'] .ch_name::before {
+body.sbterm #chat .mes[is_user='true'] .ch_name .name_text::before {
     content: '$ ' / '';
     color: var(--sbterm-accent);
 }
 
-body.sbterm #chat .mes[is_system='true'] .ch_name::before {
+body.sbterm #chat .mes[is_system='true'] .ch_name .name_text::before {
     content: '# ' / '';
     color: var(--sbterm-fg-dim);
 }
@@ -803,7 +828,11 @@ body.sbterm #form_sheld {
     border-block-start: 1px solid var(--sbterm-border) !important;
 }
 
-body.sbterm #nonQRFormItems::before {
+/* Only where the composer is laid out as the terminal prompt grid (minimal
+   density and the terminal Home). In Full chrome the host lays the composer
+   out itself and the glyph wrapped onto an orphan line below the input. */
+body.sbterm.sbterm-minimal #nonQRFormItems::before,
+body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #nonQRFormItems::before {
     content: '> ' / '';
     align-self: center;
     padding-inline: 7px 2px;
@@ -1064,6 +1093,8 @@ body.sbterm .sb-conversation-image-card {
 body.sbterm .sb-conversation-message-bubble {
     padding: 0 !important;
     border: 0 !important;
+    max-inline-size: var(--sbterm-prose-width) !important;
+    margin-inline: auto;
 }
 
 body.sbterm .sb-conversation-message[data-role='user'] .sb-conversation-message-meta {
@@ -1152,8 +1183,10 @@ body.sbterm .autoComplete-detailsWrap:not(.isFloating) {
     right: var(--sbterm-autocomplete-right, var(--rightOffset, 1vw)) !important;
 }
 
+/* Guided Generations' simple-send duplicates the composer's send button;
+   two paper planes on one screen read as two different actions. */
 body.sbterm #gg_simple_send_button {
-    order: 100;
+    display: none !important;
 }
 
 body.sbterm .autoComplete > .item {
@@ -1376,7 +1409,7 @@ body.sbterm #toast-container .toast-close-button {
 :is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) .sbterm-banner-title {
     display: block;
     color: var(--sbterm-accent);
-    font-size: 0.78rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.83);
     font-weight: 750;
     letter-spacing: 0.04em;
     line-height: 1.2;
@@ -1390,7 +1423,7 @@ body.sbterm #toast-container .toast-close-button {
     inline-size: 100%;
     padding: 1px 0 0;
     color: var(--sbterm-fg-dim);
-    font-size: 0.8125rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.87);
     font-weight: 450;
     letter-spacing: 0;
     line-height: 1.35;
@@ -1528,7 +1561,7 @@ body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .sbterm-co
     margin-block-start: 1rem;
     padding-inline-end: 0.75rem;
     color: var(--sbterm-fg-dim);
-    font-size: 0.78125rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.83);
     font-weight: 450;
     line-height: 1.4;
     max-block-size: min(50dvh, 28rem);
@@ -1679,11 +1712,11 @@ body.sbterm.sbterm-minimal #chat .ch_name {
     gap: 0.6ch;
     margin-block-end: 3px;
     color: var(--sbterm-fg-dim);
-    font-size: 0.8125rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.87);
     font-weight: 450;
 }
 
-body.sbterm.sbterm-minimal #chat .ch_name::before {
+body.sbterm.sbterm-minimal #chat .ch_name .name_text::before {
     content: '@ ' / '';
     color: var(--sbterm-fg-dim);
     font-weight: 450;
@@ -1719,7 +1752,7 @@ body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name {
     font-size: inherit;
 }
 
-body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name::before {
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name .name_text::before {
     content: '> ' / '';
     color: var(--sbterm-accent);
     font-weight: 800;
@@ -1729,13 +1762,13 @@ body.sbterm.sbterm-minimal #chat .mes[is_user='true'] .ch_name :is(.timestamp, .
     display: none !important;
 }
 
-body.sbterm.sbterm-minimal #chat .mes[is_system='true'] .ch_name::before {
+body.sbterm.sbterm-minimal #chat .mes[is_system='true'] .ch_name .name_text::before {
     content: '# ' / '';
 }
 
 body.sbterm.sbterm-minimal #chat .mes_text {
     color: var(--sbterm-fg) !important;
-    font-size: 0.98rem;
+    font-size: var(--mainFontSize, 15px);
     line-height: 1.62;
 }
 
@@ -1846,7 +1879,7 @@ body.sbterm.sbterm-minimal .sb-conversation-message-bubble {
 body.sbterm.sbterm-minimal .sb-conversation-message-name,
 body.sbterm.sbterm-minimal .sb-conversation-message-meta {
     color: var(--sbterm-fg-dim) !important;
-    font-size: 0.8125rem;
+    font-size: calc(var(--mainFontSize, 15px) * 0.87);
     font-weight: 450;
 }
 
@@ -2077,19 +2110,97 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         padding-inline: 6px;
     }
 
-    /* ponytail: a full-size avatar column eats most of a phone transcript;
-       touch devices get a compact 44px avatar, still matching the touch target */
-    body.sbterm #chat .mesAvatarWrapper {
-        --avatar-base-width: 44px;
-        --avatar-base-height: 44px;
+    /* A side avatar column eats a quarter of a phone transcript, and the
+       Moonlit styles (ripple/whisper/echo/hush/tide) size that column from
+       their own variables, so shrinking --avatar-base-width never reached
+       them (audit: 26-character lines under Ripple at 390px). On touch,
+       every style family restacks: a compact avatar+meta strip on top,
+       prose at full width below. Selectors intentionally mirror the host's
+       specificity so the later-loaded extension sheet wins the tie. */
+    body.sbterm #chat .mes:not(.smallSysMes) {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    body.sbterm #chat .mes:not(.smallSysMes) .mesAvatarWrapper {
+        position: static !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 1ch !important;
+        inline-size: 100% !important;
+        max-inline-size: 100% !important;
+        min-inline-size: 0 !important;
+        block-size: auto !important;
+        min-block-size: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        text-align: start !important;
+    }
+
+    body.sbterm #chat .mes:not(.smallSysMes) .mesAvatarWrapper .avatar,
+    body.sbterm #chat .mes:not(.smallSysMes) .mesAvatarWrapper .avatar > img {
+        inline-size: 32px !important;
+        min-inline-size: 32px !important;
+        max-inline-size: 32px !important;
+        block-size: 32px !important;
+        min-block-size: 32px !important;
+        max-block-size: 32px !important;
+        aspect-ratio: 1 !important;
+        object-fit: cover;
+    }
+
+    body.sbterm #chat .mes:not(.smallSysMes) .mes_block {
+        inline-size: 100% !important;
+        max-inline-size: 100% !important;
+        margin: 0 !important;
+        padding-inline: 0 !important;
+    }
+
+    /* In the stacked layout the swipe-left arrow would become its own row;
+       anchor it opposite the host's absolutely-positioned swipe-right block. */
+    body.sbterm #chat .mes:not(.smallSysMes) > .swipe_left {
+        position: absolute;
+        inset-inline-start: 6px;
+        inset-block-end: 6px;
+        margin: 0 !important;
+    }
+
+    body.sbterm #chat .mes.last_mes:not(.smallSysMes) {
+        padding-block-end: 34px !important;
     }
 
     /* ponytail: the auxiliary bars are one scrollable row on touch; fade the
-       clipped right edge so more controls are discoverable */
+       clipped right edge so more controls are discoverable. The trailing
+       padding keeps the last button out of the permanent fade zone. */
     body.sbterm #sbterm-chat-topbar {
         gap: 0.25rem;
-        padding-inline: 0.5rem;
+        padding-inline: 0.5rem 1.75rem;
         mask-image: linear-gradient(90deg, #000 0 calc(100% - 1.75rem), transparent);
+    }
+
+    body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) {
+        margin-block-end: 0 !important;
+    }
+
+    /* The In-Chat Agents companion tab floats over the transcript and the
+       host reserves no space for it; keep it, but as a quiet icon-size chip
+       instead of a full vertical label covering message text. */
+    body.sbterm .ica--tpanel-handle span {
+        display: none;
+    }
+
+    body.sbterm .ica--tpanel-handle {
+        opacity: 0.55;
+        min-block-size: 44px;
+    }
+
+    /* Minimal density hides the composer's left cluster for keyboard purists,
+       but on touch the options and wand menus need a tap path even when the
+       bottom bar is hidden. */
+    body.sbterm.sbterm-minimal #leftSendForm {
+        display: flex !important;
     }
 
     /* The active-chat autocomplete must not bury the transcript; cap it like
@@ -2139,7 +2250,7 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         flex-basis: 44px !important;
     }
 
-    body.sbterm #nonQRFormItems::before {
+    body.sbterm.sbterm-minimal #nonQRFormItems::before {
         content: none;
     }
 
@@ -2179,6 +2290,12 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
 
     :is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) #sbterm-statusline {
         padding-inline: 0;
+    }
+
+    /* The host's fixed top-bar row clips the banner's bottom hairline into a
+       stray sliver on phones; the divider is decoration, drop it. */
+    :is(body.sbterm.sbterm-minimal, body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel)) .sbterm-banner-copy::after {
+        content: none;
     }
 
     body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld {
@@ -2225,6 +2342,21 @@ body.sbterm.sbterm-crt :is(#chat .mes_text, #sbterm-statusline) {
 @keyframes sbterm-flicker {
     0%, 97%, 100% { opacity: 1; }
     98% { opacity: 0.92; }
+}
+
+/* The host also has an in-app "reduced motion" toggle (body.reduced-motion)
+   that is independent of the OS media query; honor both. */
+body.sbterm.reduced-motion.sbterm-crt::after {
+    animation: none;
+}
+
+body.sbterm.reduced-motion *,
+body.sbterm.reduced-motion *::before,
+body.sbterm.reduced-motion *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
