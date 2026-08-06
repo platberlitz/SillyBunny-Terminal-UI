@@ -398,7 +398,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(document.listenerCount('submit'), 1);
     assert.equal(document.listenerCount('keydown'), 1);
     assert.equal(document.listenerCount('click'), 1);
-    assert.equal(document.listenerCount('touchend'), 0);
+    assert.equal(document.listenerCount('touchend'), 1, 'iOS sends from touchend and suppresses the click, so touchend must be intercepted too');
     assert(bottomBar.classList.contains('displayNone'), 'chat bars stay hidden by default until the user opts in');
     assert(document.getElementById('sbterm-settings-drawer'));
     assert(document.getElementById('sbterm-banner'));
@@ -540,6 +540,38 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(nativeApiPrevented, false, 'native /api must remain on the host event path');
     assert.equal(sendInput.value, '/api');
     assert.deepEqual(executedCommands, ['/sbterm ui full', '/home']);
+    sendInput.value = '';
+
+    // A tap on iOS arrives as touchend; the host sends from there and eats the
+    // click, so an owned command must be intercepted on touchend as well.
+    sendInput.value = '/open-chats';
+    let touchPrevented = false;
+    document.dispatch('touchend', {
+        target: { closest: selector => selector === '#send_but' },
+        preventDefault: () => touchPrevented = true,
+        stopImmediatePropagation() {},
+    });
+    await Promise.resolve();
+    assert.equal(touchPrevented, true, 'tapping send on iOS must not reach the host send handler');
+    assert.equal(sendInput.value, '');
+    assert.deepEqual(executedCommands.at(-1), '/open-chats');
+
+    // With no character selected the host would spawn a permanent Assistant
+    // chat before running ANY command, so registered host commands are run
+    // directly while Terminal Home is on screen.
+    const chidBeforeTrap = context.characterId;
+    context.characterId = undefined;
+    sendInput.value = '/api';
+    let trapPrevented = false;
+    document.dispatch('touchend', {
+        target: { closest: selector => selector === '#send_but' },
+        preventDefault: () => trapPrevented = true,
+        stopImmediatePropagation() {},
+    });
+    await Promise.resolve();
+    assert.equal(trapPrevented, true, 'commands sent with no character selected must bypass the host Assistant trap');
+    assert.deepEqual(executedCommands.at(-1), '/api');
+    context.characterId = chidBeforeTrap;
     sendInput.value = '';
 
     assert.equal(await homeCommand.callback(), 'home');

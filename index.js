@@ -1124,6 +1124,21 @@ function isRegisteredConversationCommand(command, input) {
     return active && input?.id === 'sb_conversation_input' && name && !CONVERSATION_COMMANDS.has(name) && Boolean(ctx()?.SlashCommandParser?.commands?.[name]);
 }
 
+/* The host creates a *permanent* Assistant chat whenever a composer submit
+   carries text while no character or group is selected, and only runs the
+   slash command afterwards (`sendTextareaMessage` in script.js). Terminal
+   Home is exactly that state, so every command typed there would spawn an
+   Assistant chat. Run any registered command ourselves inside that window. */
+function isAssistantTrapCommand(command, input) {
+    if (!active || input?.id !== 'send_textarea') return false;
+    const name = String(command ?? '').trim().match(/^\/([^\s|]+)/)?.[1]?.toLowerCase();
+    if (!name) return false;
+    const context = ctx();
+    const noCharacter = context?.characterId === undefined || context?.characterId === null;
+    const noGroup = !context?.groupId;
+    return Boolean(context && noCharacter && noGroup && context.SlashCommandParser?.commands?.[name]);
+}
+
 function clearCommandInput(input) {
     input.value = '';
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -1131,7 +1146,7 @@ function clearCommandInput(input) {
 
 function executeOwnedCommand(event, input) {
     const command = input.value.trim();
-    if (!isOwnedCommand(command) && !isRegisteredConversationCommand(command, input)) return false;
+    if (!isOwnedCommand(command) && !isRegisteredConversationCommand(command, input) && !isAssistantTrapCommand(command, input)) return false;
     const context = ctx();
     const execute = context?.executeSlashCommandsWithOptions;
     if (typeof execute !== 'function') return false;
@@ -1330,6 +1345,12 @@ function bindDomEvents() {
     domController = new AbortController();
     const options = { capture: true, signal: domController.signal };
     document.addEventListener('click', onDocumentClick, options);
+    /* iOS/WebKit: the host sends from a `touchend` handler bound straight to
+       #send_but and suppresses the click that follows (mobile-send-button.js),
+       so a click-only interception never runs on a phone. Capturing touchend
+       at the document beats that handler; preventDefault() there also stops
+       the compatibility click, so the command cannot execute twice. */
+    document.addEventListener('touchend', onDocumentClick, options);
     document.addEventListener('submit', onConversationSubmit, options);
     document.addEventListener('keydown', onCommandKeydown, options);
     globalThis.addEventListener?.('sb:conversation-workspace-state-changed', queueConversationStatusRefresh, { signal: domController.signal });
