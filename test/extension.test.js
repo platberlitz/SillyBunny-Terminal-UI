@@ -371,7 +371,10 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     let conversationAutocompleteBindings = 0;
     const context = {
         extensionSettings: {
-            'SillyBunny-Terminal-UI': { version: 1, enabled: true, palette: 'nord', crt: false },
+            // Seeded at the current version in terminal density so the rest of
+            // this test exercises that mode; the shipped defaults (Full chrome,
+            // both bars on) are asserted from source below.
+            'SillyBunny-Terminal-UI': { version: 4, enabled: true, palette: 'nord', crt: false, minimal: true, topbarVisible: null, avatarVisible: true, chatTopbarVisible: null, bottomBarVisible: null },
         },
         saveSettingsDebounced: () => saves += 1,
         SlashCommandParser: parser,
@@ -470,7 +473,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     await Promise.resolve();
 
     const settings = context.extensionSettings['SillyBunny-Terminal-UI'];
-    assert.equal(settings.version, 3);
+    assert.equal(settings.version, 4);
     assert.equal(settings.minimal, true);
     assert.equal(settings.palette, 'nord');
     // null = follow the density default, so an explicit /hide-* or /show-* is
@@ -481,7 +484,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(settings.bottomBarVisible, null);
     assert(document.body.classList.contains('sbterm-topbar-hidden'), 'terminal density still hides the nav bar by default');
     assert(document.body.classList.contains('sbterm-bottom-bar-hidden'), 'terminal density still hides the bottom bar by default');
-    assert.equal(saves, 1);
+    assert.equal(saves, 0, 'settings already at the current version must not be rewritten on activate');
     assert(document.body.classList.contains('sbterm'));
     assert(document.body.classList.contains('sbterm-minimal'));
     assert.equal(document.listenerCount('submit'), 1);
@@ -610,7 +613,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
         'open-workspace', 'open-presets', 'open-api', 'open-model', 'open-sampling', 'open-formatting', 'open-agents',
         'open-customize', 'open-settings', 'open-extensions', 'open-background', 'open-server', 'open-logs', 'open-characters',
         'open-groups', 'open-editor', 'open-world-info', 'open-persona', 'open-import', 'search', 'chat-tools', 'open-chats', 'appearance',
-        'open-homepage', 'open-conversation', 'open-roleplay', 'hide-topbar', 'open-nav-topbar', 'hide-home', 'hide-avatar', 'show-avatar',
+        'open-homepage', 'open-conversation', 'open-roleplay', 'hide-top-navbar', 'show-top-navbar', 'hide-home', 'hide-avatar', 'show-avatar',
         'show-chat-topbar', 'hide-chat-topbar', 'show-bottom-bar', 'hide-bottom-bar',
     ]) {
         assert(parser.commands[name], `expected /${name} to be registered`);
@@ -776,10 +779,10 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(document.body.classList.contains('sbterm-home-visible'));
     assert.equal(homeClicks, 2);
 
-    await parser.commands['hide-topbar'].callback();
+    await parser.commands['hide-top-navbar'].callback();
     assert.equal(settings.topbarVisible, false);
     assert(document.body.classList.contains('sbterm-topbar-hidden'));
-    await parser.commands['open-nav-topbar'].callback();
+    await parser.commands['show-top-navbar'].callback();
     assert.equal(settings.topbarVisible, true);
     assert(!document.body.classList.contains('sbterm-topbar-hidden'));
 
@@ -995,7 +998,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(parser.commands.model, modelCommand);
     assert(!parser.commands['open-extensions'], 'top-level /open-extensions must be removed on disable');
     assert(!parser.commands['open-api']);
-    assert(!parser.commands['hide-topbar']);
+    assert(!parser.commands['hide-top-navbar']);
     assert.equal(await command.callback({}, 'off'), 'Terminal UI is disabled.');
     assert.equal(await homeCommand.callback(), 'Terminal UI is disabled.');
     assert.equal(await parser.commands['open-extensions']?.callback?.() ?? undefined, undefined);
@@ -1025,14 +1028,14 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(parser.commands.home);
     assert(parser.commands['open-extensions']);
     assert(parser.commands['open-api']);
-    assert(parser.commands['hide-topbar']);
+    assert(parser.commands['hide-top-navbar']);
     assert.notEqual(parser.commands.sbterm, command);
     assert.equal(settings.topbarVisible, true, 'user toggle must persist across re-activation');
     extension.disable();
     assert(!parser.commands.sbterm);
     assert(!parser.commands.home);
     assert(!parser.commands['open-extensions']);
-    assert(!parser.commands['hide-topbar']);
+    assert(!parser.commands['hide-top-navbar']);
     assert(!bottomBar.classList.contains('displayNone'));
 
     settings.enabled = false;
@@ -1045,6 +1048,20 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert(!document.getElementById('sbterm-banner'));
     assert(!document.querySelector('.sbterm-command-glossary'));
     extension.disable();
+});
+
+test('shipped defaults are Full chrome with both chat bars on', async () => {
+    const source = await readFile(new URL('../index.js', import.meta.url), 'utf8');
+    const defaults = source.match(/const DEFAULTS = \{([^}]+)\}/)[1];
+    assert.match(defaults, /minimal: false/, 'Full chrome is the default interface');
+    assert.match(defaults, /chatTopbarVisible: true/, 'the chat tool bar ships on');
+    assert.match(defaults, /bottomBarVisible: true/, 'the chat bottom bar ships on');
+
+    // Every visibility setting needs a checkbox and a matching sync entry, or
+    // the drawer silently drifts from what the slash commands did.
+    for (const id of ['sbterm-show-topbar', 'sbterm-show-chat-topbar', 'sbterm-show-bottom-bar', 'sbterm-show-avatar']) {
+        assert.equal(source.split(`'${id}'`).length - 1, 2, `${id} needs both a checkbox row and a syncDrawer entry`);
+    }
 });
 
 test('static UI rules preserve contrast and density boundaries', async () => {

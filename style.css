@@ -718,6 +718,13 @@ body.sbterm #sbterm-chat-topbar:empty {
 body.sbterm.sbterm-chat-topbar-hidden #sbterm-chat-topbar {
     display: none !important;
 }
+
+/* Full chrome never builds #sbterm-chat-topbar — the Quick Replies and Guided
+   Generations bars stay where the host puts them — so the toggle has to reach
+   them directly or it is a dead checkbox in the default interface. */
+body.sbterm.sbterm-chat-topbar-hidden :is(#qr--bar, #gg-action-button-container) {
+    display: none !important;
+}
 body.sbterm.sbterm-bottom-bar-hidden #sb-bottom-chat-bar {
     display: none !important;
 }
@@ -1477,13 +1484,10 @@ body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #top-bar {
     border-block-end: 0;
 }
 
-body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #top-bar #sb-topbar-inner {
-    grid-template-columns: minmax(0, 1fr) !important;
-}
-
-body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #sb-topbar-inner > .sb-topbar-group {
-    display: none !important;
-}
+/* Terminal Home used to hide the nav groups unconditionally here, which made
+   /show-top-navbar a no-op on the one screen you are most likely to run it
+   from. The .sbterm-topbar-hidden rules in §4 already collapse the bar to a
+   single column and hide the groups, so Home follows the toggle now. */
 
 body.sbterm:not(.sbterm-home-visible):has(#chat .welcomePanel) #sheld {
     border: 0;
@@ -2292,11 +2296,25 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         content: none;
     }
 
+    /* One column on phones, with the mascot restacked onto its own row above
+       the prompt instead of the desktop layout's left-hand column. */
     body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld {
         grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: auto auto minmax(0, 1fr);
         grid-template-areas:
+            'mascot'
             'prompt'
             'guide' !important;
+        row-gap: 0.5rem;
+    }
+
+    body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .sbterm-mascot-form {
+        grid-area: mascot;
+        justify-self: center;
+        align-self: center;
+        margin-block-start: 0;
+        inline-size: 4.5rem;
+        block-size: 3.5rem;
     }
 
     body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .sbterm-command-glossary-list {
@@ -2308,8 +2326,7 @@ body.sbterm.sbterm-minimal .recentChat .avatar {
         gap: 0;
     }
 
-    body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::before,
-    body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) .sbterm-mascot-form {
+    body.sbterm:not(.sbterm-home-visible) #sheld:has(#chat .welcomePanel) #form_sheld::before {
         display: none;
     }
 }

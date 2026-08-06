@@ -26,9 +26,10 @@ const PALETTES = [
 ];
 
 const PALETTE_IDS = PALETTES.map(([id]) => id);
-// null on the bar toggles = follow the density default (hidden in terminal,
-// shown in Full chrome). A command sets an explicit boolean that wins in both.
-const DEFAULTS = { version: 3, enabled: true, palette: 'phosphor-green', crt: false, minimal: true, topbarVisible: null, avatarVisible: true, chatTopbarVisible: null, bottomBarVisible: null };
+// null on a bar toggle = follow the density default (hidden in terminal, shown
+// in Full chrome). An explicit boolean — from a command or the drawer checkbox
+// — wins in both densities. The chat toolbars ship on regardless of density.
+const DEFAULTS = { version: 4, enabled: true, palette: 'phosphor-green', crt: false, minimal: false, topbarVisible: null, avatarVisible: true, chatTopbarVisible: true, bottomBarVisible: true };
 
 /* The Moonlit Echoes theme extension restyles the same surfaces this reskin
    owns and the two fight; while Terminal UI is on, its stylesheets are turned
@@ -117,17 +118,15 @@ const COMMAND_OPTIONS = [
    /model commands stay untouched; their aliases are /open-api and /open-model,
    and every other destination gets an /open-<name> command too. */
 const openCommandName = destination => (destination === 'api' || destination.startsWith('open-') ? destination : `open-${destination}`);
-const TOGGLE_COMMANDS = ['hide-topbar', 'open-nav-topbar', 'hide-home', 'hide-avatar', 'show-avatar', 'show-chat-topbar', 'hide-chat-topbar', 'show-bottom-bar', 'hide-bottom-bar'];
+const TOGGLE_COMMANDS = ['hide-top-navbar', 'show-top-navbar', 'hide-home', 'hide-avatar', 'show-avatar', 'show-chat-topbar', 'hide-chat-topbar', 'show-bottom-bar', 'hide-bottom-bar'];
 const CONVERSATION_COMMANDS = new Set(['selfie', 'remind', 'schedule', 'summarize', 'ooc']);
 const TOGGLE_CONFIG = {
-    'hide-topbar': { patch: { topbarVisible: false }, success: 'Top bar hidden.' },
-    'open-nav-topbar': { patch: { topbarVisible: true }, success: 'Top bar shown.' },
+    'hide-top-navbar': { patch: { topbarVisible: false }, success: 'Top bar hidden.' },
+    'show-top-navbar': { patch: { topbarVisible: true }, success: 'Top bar shown.' },
     'hide-avatar': { patch: { avatarVisible: false }, success: 'Avatars hidden.' },
     'show-avatar': { patch: { avatarVisible: true }, success: 'Avatars shown.' },
-    // Full chrome leaves the host's toolbars where the host puts them and never
-    // builds #sbterm-chat-topbar, so these two have nothing to act on there.
-    'show-chat-topbar': { patch: { chatTopbarVisible: true }, success: 'Chat top bar shown.', terminalOnly: true },
-    'hide-chat-topbar': { patch: { chatTopbarVisible: false }, success: 'Chat top bar hidden.', terminalOnly: true },
+    'show-chat-topbar': { patch: { chatTopbarVisible: true }, success: 'Chat top bar shown.' },
+    'hide-chat-topbar': { patch: { chatTopbarVisible: false }, success: 'Chat top bar hidden.' },
     'show-bottom-bar': { patch: { bottomBarVisible: true }, success: 'Chat bottom bar shown.' },
     'hide-bottom-bar': { patch: { bottomBarVisible: false }, success: 'Chat bottom bar hidden.' },
 };
@@ -146,8 +145,8 @@ const COMMAND_GLOSSARY = [
     ['/open-homepage', 'Reveal native SillyBunny Home'],
     ['/open-conversation', 'Open Conversation Mode'],
     ['/open-roleplay', 'Return to Roleplay Mode'],
-    ['/hide-topbar', 'Hide the navigation top bar'],
-    ['/open-nav-topbar', 'Show the navigation top bar'],
+    ['/hide-top-navbar', 'Hide the navigation top bar'],
+    ['/show-top-navbar', 'Show the navigation top bar'],
     ['/hide-home', 'Replace native Home with Terminal Home'],
     ['/hide-avatar', 'Hide chat avatars'],
     ['/show-avatar', 'Show chat avatars'],
@@ -213,6 +212,16 @@ function ensureSettings() {
         for (const key of ['topbarVisible', 'chatTopbarVisible', 'bottomBarVisible']) {
             settings[key] = null;
         }
+        changed = true;
+    }
+
+    // v4 moved the shipped defaults to Full chrome with both chat bars on.
+    // Existing installs carry v2/v3 values written by the old defaults rather
+    // than by choice, so adopt the new ones once.
+    if (Number(settings.version) < 4) {
+        settings.minimal = DEFAULTS.minimal;
+        settings.chatTopbarVisible = DEFAULTS.chatTopbarVisible;
+        settings.bottomBarVisible = DEFAULTS.bottomBarVisible;
         changed = true;
     }
 
@@ -404,11 +413,18 @@ function renderDrawer() {
     const content = el('div', 'inline-drawer-content sbterm-settings-content');
     content.id = 'sbterm-settings-content';
     toggle.addEventListener('click', () => globalThis.setTimeout?.(syncDrawerDisclosure, 0));
+    // A checkbox is boolean, so ticking one writes an explicit value and drops
+    // out of the density default — same thing the matching slash command does.
+    const densityDefault = !settings.minimal;
     content.append(
         checkboxRow('sbterm-enabled', 'Enable Terminal UI', settings.enabled, value => updateSettings({ enabled: value })),
         selectRow('sbterm-density', 'Interface', [['terminal', 'Terminal'], ['full', 'Full chrome']], settings.minimal ? 'terminal' : 'full', value => updateSettings({ minimal: value === 'terminal' })),
         selectRow('sbterm-palette', 'Palette', PALETTES, settings.palette, value => updateSettings({ palette: value })),
         checkboxRow('sbterm-crt', 'CRT overlay (optional)', settings.crt, value => updateSettings({ crt: value })),
+        checkboxRow('sbterm-show-topbar', 'Show navigation top bar', settings.topbarVisible ?? densityDefault, value => updateSettings({ topbarVisible: value })),
+        checkboxRow('sbterm-show-chat-topbar', 'Show chat tool bar', settings.chatTopbarVisible ?? densityDefault, value => updateSettings({ chatTopbarVisible: value })),
+        checkboxRow('sbterm-show-bottom-bar', 'Show chat bottom bar', settings.bottomBarVisible ?? densityDefault, value => updateSettings({ bottomBarVisible: value })),
+        checkboxRow('sbterm-show-avatar', 'Show chat avatars', settings.avatarVisible, value => updateSettings({ avatarVisible: value })),
         el('small', 'sbterm-command-hint', 'Navigate from either prompt with /sbterm. Type /sbterm and use autocomplete.'),
     );
 
@@ -435,6 +451,20 @@ function syncDrawer() {
     if (density) density.value = settings.minimal ? 'terminal' : 'full';
     if (palette) palette.value = settings.palette;
     if (crt) crt.checked = settings.crt;
+
+    // Slash commands write the same settings, so the boxes have to follow them
+    // — and follow the density default while a toggle is still unset.
+    const densityDefault = !settings.minimal;
+    const visibility = {
+        'sbterm-show-topbar': settings.topbarVisible ?? densityDefault,
+        'sbterm-show-chat-topbar': settings.chatTopbarVisible ?? densityDefault,
+        'sbterm-show-bottom-bar': settings.bottomBarVisible ?? densityDefault,
+        'sbterm-show-avatar': settings.avatarVisible,
+    };
+    for (const [id, value] of Object.entries(visibility)) {
+        const box = document.getElementById(id);
+        if (box) box.checked = value;
+    }
 }
 
 function ensureStatusline() {
@@ -1150,10 +1180,6 @@ function runToggleCommand(name) {
             return opened ? 'home' : 'home unavailable';
         }
         const config = TOGGLE_CONFIG[name];
-        if (config.terminalOnly && !getSettings().minimal) {
-            notify('That toggle only applies to the Terminal interface; Full chrome keeps the host toolbars.', 'warning');
-            return 'not applicable in full chrome';
-        }
         updateSettings(config.patch);
         notify(config.success, 'success');
         return String(config.patch[Object.keys(config.patch)[0]]);

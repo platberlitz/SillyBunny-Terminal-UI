@@ -1,7 +1,7 @@
 {
     "display_name": "Terminal UI",
     "author": "platberlitz",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "description": "A command-first terminal interface for SillyBunny with native slash autocomplete, keyboard-revealed controls, live diagnostics, 13 palettes, and a touch-safe mobile fallback.",
     "requires": [],
     "optional": [],
