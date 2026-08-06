@@ -39,7 +39,7 @@ The normal SillyBunny composer remains the only prompt:
 - `Ctrl+Space` opens or expands native command autocomplete.
 - The native Home is replaced by a centered, prompt-only REPL in both interface densities; `/home` and `/hide-home` return to Terminal Home, while `/open-homepage` explicitly reveals SillyBunny's native Home when needed.
 - The empty state keeps a compact, scrollable command reference next to the prompt; typing `/` still opens native slash autocomplete.
-- The chat toolbar (Quick Replies, Guided Generations) and the bottom chat-management bar are both on by default; turn them off with `/hide-chat-topbar` and `/hide-bottom-bar`, or from the checkboxes in the extension drawer. Terminal UI preserves the native send control whenever SillyBunny exposes it, including for desktop users who disable Enter-to-send.
+- The chat toolbar (Quick Replies, Guided Generations) and the bottom chat-management bar follow the interface: on in Full chrome (the default), stripped in Terminal density. Force either state with `/show-chat-topbar` / `/hide-chat-topbar`, `/show-bottom-bar` / `/hide-bottom-bar`, or the checkboxes in the extension drawer. Terminal UI preserves the native send control whenever SillyBunny exposes it, including for desktop users who disable Enter-to-send.
 - Every visibility toggle is available three ways — a checkbox in the extension drawer, a slash command, and `/sbterm`. A toggle you have never touched follows the interface density; once set, it applies in both densities.
 - The Moonlit Echoes theme extension is automatically muted while Terminal UI is active — the two restyle the same surfaces and conflict. Its stylesheets are switched back on the moment Terminal UI is turned off; no Moonlit settings are changed.
 

@@ -1054,8 +1054,10 @@ test('shipped defaults are Full chrome with both chat bars on', async () => {
     const source = await readFile(new URL('../index.js', import.meta.url), 'utf8');
     const defaults = source.match(/const DEFAULTS = \{([^}]+)\}/)[1];
     assert.match(defaults, /minimal: false/, 'Full chrome is the default interface');
-    assert.match(defaults, /chatTopbarVisible: true/, 'the chat tool bar ships on');
-    assert.match(defaults, /bottomBarVisible: true/, 'the chat bottom bar ships on');
+    // null, not true: Full chrome shows both bars anyway, and forcing them on
+    // left Terminal density with almost nothing to strip.
+    assert.match(defaults, /chatTopbarVisible: null/, 'the chat tool bar follows the density until set');
+    assert.match(defaults, /bottomBarVisible: null/, 'the chat bottom bar follows the density until set');
 
     // Every visibility setting needs a checkbox and a matching sync entry, or
     // the drawer silently drifts from what the slash commands did.

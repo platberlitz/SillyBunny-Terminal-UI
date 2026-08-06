@@ -28,8 +28,10 @@ const PALETTES = [
 const PALETTE_IDS = PALETTES.map(([id]) => id);
 // null on a bar toggle = follow the density default (hidden in terminal, shown
 // in Full chrome). An explicit boolean — from a command or the drawer checkbox
-// — wins in both densities. The chat toolbars ship on regardless of density.
-const DEFAULTS = { version: 4, enabled: true, palette: 'phosphor-green', crt: false, minimal: false, topbarVisible: null, avatarVisible: true, chatTopbarVisible: true, bottomBarVisible: true };
+// — wins in both densities. Since Full chrome is the shipped density, null
+// already means "on out of the box" while leaving Terminal something to strip;
+// forcing them true made the two densities near-identical.
+const DEFAULTS = { version: 4, enabled: true, palette: 'phosphor-green', crt: false, minimal: false, topbarVisible: null, avatarVisible: true, chatTopbarVisible: null, bottomBarVisible: null };
 
 /* The Moonlit Echoes theme extension restyles the same surfaces this reskin
    owns and the two fight; while Terminal UI is on, its stylesheets are turned
@@ -215,13 +217,11 @@ function ensureSettings() {
         changed = true;
     }
 
-    // v4 moved the shipped defaults to Full chrome with both chat bars on.
-    // Existing installs carry v2/v3 values written by the old defaults rather
-    // than by choice, so adopt the new ones once.
+    // v4 moved the shipped density to Full chrome, where both chat bars are on.
+    // Existing installs carry a `minimal` written by the old default rather than
+    // by choice, so adopt the new one once.
     if (Number(settings.version) < 4) {
         settings.minimal = DEFAULTS.minimal;
-        settings.chatTopbarVisible = DEFAULTS.chatTopbarVisible;
-        settings.bottomBarVisible = DEFAULTS.bottomBarVisible;
         changed = true;
     }
 

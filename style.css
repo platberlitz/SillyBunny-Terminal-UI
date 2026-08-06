@@ -277,7 +277,21 @@ body.sbterm {
     --sb-topbar-surface-bg: var(--sbterm-bg-alt);
     --sb-chatbar-surface-bg: var(--sbterm-bg-alt);
     --sb-composer-surface-bg: var(--sbterm-bg);
+    /* The whole derived chain has to be redeclared, not just the source: the
+       host computes -base and -bg FROM -source at :root, so those keep the
+       host theme's dark tint even after -source is remapped here. Missing
+       these is what left the chat area dark under a light palette. */
     --sb-chat-surface-source: var(--sbterm-bg);
+    --sb-chat-surface-base: var(--sbterm-bg);
+    --sb-chat-surface-bg: var(--sbterm-bg);
+    --sb-fixed-surface-base: var(--sbterm-bg-alt);
+    --sb-fixed-surface-bg: var(--sbterm-bg-alt);
+    --sb-composer-surface-base: var(--sbterm-bg);
+    --sb-composer-input-bg: var(--sbterm-bg-alt);
+    --sb-button-bg: var(--sbterm-bg-alt);
+    --sb-button-hover: var(--sbterm-bg-alt);
+    --sb-shell-tab-active-bg: var(--sbterm-bg-alt);
+    --sb-shell-header-bg: var(--sbterm-bg-alt);
     --sb-mobile-overlay-bg: var(--sbterm-bg);
     --sb-mobile-panel-bg: var(--sbterm-bg);
     --sb-card-bg: var(--sbterm-bg-alt);
@@ -810,11 +824,15 @@ body.sbterm .mes .mes_edit_buttons {
 
 body.sbterm .mes_reasoning,
 body.sbterm .mes_reasoning_details,
+body.sbterm .mes_reasoning_header,
+body.sbterm .mes_reasoning_header_block,
 body.sbterm .mes_file_container,
 body.sbterm .mes_audio_container,
 body.sbterm .mes_media_wrapper {
     border-color: var(--sbterm-border) !important;
     background-color: var(--sbterm-bg-alt) !important;
+    background-image: none !important;
+    color: var(--sbterm-fg) !important;
 }
 
 body.sbterm #chat pre,
@@ -864,6 +882,14 @@ body.sbterm #send_textarea {
     font-family: var(--monoFontFamily);
     caret-color: var(--sbterm-accent);
     caret-shape: block;
+}
+
+/* The host caps this strip at 35% width and clips the overflow with
+   scrollbar-width: none, so a composer icon gets silently sliced with no hint
+   that anything scrolls. Size it to its buttons and stop clipping. */
+body.sbterm :is(#leftSendForm, #rightSendForm) {
+    max-inline-size: max-content !important;
+    overflow: visible !important;
 }
 
 body.sbterm #send_but {
