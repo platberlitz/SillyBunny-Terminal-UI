@@ -841,6 +841,15 @@ async function showTerminalHome() {
 }
 
 async function openChats() {
+    // With a chat open, reaching the Home recents list would close it — and
+    // the host then loads the Assistant welcome chat. Use the host's
+    // non-destructive Recent Chats panel instead.
+    if (!document.querySelector('.welcomePanel')) {
+        const shell = globalThis.SillyBunnyShell;
+        if (typeof shell?.openChatTools !== 'function') return false;
+        shell.openChatTools();
+        return true;
+    }
     if (!await showHomepage()) return false;
     const showMore = document.querySelector('.showMoreChats');
     if (showMore && !showMore.classList.contains('rotated')) showMore.click();

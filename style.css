@@ -617,9 +617,10 @@ body.sbterm #sbterm-chat-topbar {
     gap: 0.5rem;
     padding: 0 0.75rem;
     margin-block-end: 4px;
-    border: 1px solid color-mix(in oklch, var(--sbterm-border) 72%, transparent);
+    border: 0;
+    border-block-start: 1px solid color-mix(in oklch, var(--sbterm-border) 45%, transparent);
     border-radius: 0;
-    background: color-mix(in oklch, var(--sbterm-bg-alt) 55%, transparent);
+    background: transparent;
 }
 
 /* Match the composer width while each toolbar keeps its own intrinsic height. */
@@ -870,19 +871,44 @@ body.sbterm #form_sheld.isExecutingCommandsFromChatInput {
     border-color: var(--sbterm-accent2) !important;
 }
 
-body.sbterm #sb-bottom-chat-bar,
-body.sbterm .sb-bottom-chat-search-field {
+/* Both chat bars read as quiet terminal strips — hairline separators and
+   monochrome glyphs — instead of the host's bordered chip grids. */
+body.sbterm #sb-bottom-chat-bar {
     border-radius: 0 !important;
-    background: var(--sbterm-bg-alt) !important;
-    border-color: var(--sbterm-border) !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-block-start: 1px solid color-mix(in oklch, var(--sbterm-border) 45%, transparent) !important;
     color: var(--sbterm-fg) !important;
     box-shadow: none !important;
 }
 
+body.sbterm .sb-bottom-chat-search-field {
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-block-end: 1px solid var(--sbterm-border) !important;
+    color: var(--sbterm-fg) !important;
+    box-shadow: none !important;
+}
+
+body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_button, .menu_button_icon, .sb-bottom-chat-btn, .stih--button, .gg-action-button, .qr--button) {
+    background: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm :is(#sbterm-chat-topbar, #sb-bottom-chat-bar) :is(button, .menu_button, .menu_button_icon, .sb-bottom-chat-btn, .stih--button, .gg-action-button, .qr--button):is(:hover, :focus-visible, .is-active, [aria-pressed='true'], [aria-current='page']) {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--sbterm-accent) !important;
+}
+
 body.sbterm #sb-persona-bubble {
     border-radius: 0 !important;
-    border-color: var(--sbterm-border) !important;
-    background-color: var(--sbterm-bg-alt) !important;
+    border-color: color-mix(in oklch, var(--sbterm-border) 60%, transparent) !important;
+    background-color: transparent !important;
 }
 
 body.sbterm #sb-persona-bubble:hover {
@@ -891,9 +917,14 @@ body.sbterm #sb-persona-bubble:hover {
 
 body.sbterm #sb-bottom-chat-select {
     border-radius: 0 !important;
-    background: var(--sbterm-bg-alt) !important;
-    border-color: var(--sbterm-border) !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--sbterm-fg-dim) !important;
+}
+
+body.sbterm #sb-bottom-chat-select:is(:hover, :focus-visible) {
     color: var(--sbterm-fg) !important;
+    border-block-end-color: var(--sbterm-border) !important;
 }
 
 body.sbterm .sb-shell-callout {
@@ -1842,8 +1873,10 @@ body.sbterm.sbterm-minimal #nonQRFormItems::before {
     padding: 0.35rem 0 0 !important;
 }
 
+/* #qig-input-btn (Quick Image Gen's palette button) stays: it is a primary
+   control the host relocates into the send rail, not composer clutter. */
 body.sbterm.sbterm-minimal #send_form > #gg-action-button-container,
-body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop),
+body.sbterm.sbterm-minimal #rightSendForm > :not(#send_but):not(#mes_stop):not(#stscript_continue):not(#stscript_pause):not(#stscript_stop):not(#qig-input-btn),
 body.sbterm.sbterm-minimal .stih--standalone {
     display: none !important;
 }
