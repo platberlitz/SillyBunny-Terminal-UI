@@ -638,6 +638,15 @@ body.sbterm #chat .mes:is(:hover, :focus-within) {
     background-color: color-mix(in oklch, var(--sbterm-bg-alt) 72%, transparent) !important;
 }
 
+/* The user's own turn is a distinct block at rest, not only under the pointer.
+   Full chrome previously left it transparent, so the palette fill showed up on
+   hover and the host's tint showed through the rest of the time. Both densities
+   share this now; Terminal density only adds its own spacing. */
+body.sbterm #chat .mes[is_user='true'],
+body.sbterm #chat .mes[is_user='true']:is(:hover, :focus-within) {
+    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg)) !important;
+}
+
 body.sbterm #chat .mes::before,
 body.sbterm #chat .mes::after,
 body.sbterm #chat .mes_block::before,
@@ -1799,11 +1808,9 @@ body.sbterm.sbterm-minimal #chat .mes:is(:hover, :focus-within) {
     background-color: transparent !important;
 }
 
-body.sbterm.sbterm-minimal #chat .mes[is_user='true'],
-body.sbterm.sbterm-minimal #chat .mes[is_user='true']:is(:hover, :focus-within) {
+body.sbterm.sbterm-minimal #chat .mes[is_user='true'] {
     margin-block-end: 18px !important;
     padding-block: 9px !important;
-    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg)) !important;
 }
 
 body.sbterm.sbterm-minimal #chat .mes_block {
