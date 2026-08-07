@@ -96,10 +96,10 @@ CRT scanlines are optional and off by default. Motion stops under `prefers-reduc
 
 ## Install
 
-Clone or symlink the extension into:
+Clone or symlink the extension into `data/<user-handle>/extensions/`:
 
-```text
-data/<user-handle>/extensions/SillyBunny-Terminal-UI
+```sh
+git clone https://github.com/SillyBunnyTeam/SillyBunny-Terminal-UI.git
 ```
 
 Reload SillyBunny, then configure it under **Extensions > Terminal UI**. Settings use SillyBunny's standard extension store.
