@@ -1083,6 +1083,7 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.match(css, /body\.sbterm:not\(\.sbterm-home-visible\):has\(#chat \.welcomePanel\) #top-bar\s*\{[^}]+background-color:\s*var\(--sbterm-bg\) !important;/s, 'Home text chrome needs an opaque contrast backing');
     assert.match(css, /body\.sbterm\.sbterm-minimal #chat \.mes\[is_user='true'\] \.mes_block:not\(:has\(\.edit_textarea, \.reasoning_edit_textarea\)\)\s*\{[^}]+display:\s*grid !important;/s, 'message editors must opt out of the inline user-message grid');
     assert.match(css, /--ac-style-color-selectedText:\s*var\(--sbterm-selected-fg\);/, 'selected autocomplete text must use the on-accent token');
+    assert.match(css, /body\.sbterm ::selection\s*\{\s*background-color:\s*var\(--sbterm-accent\) !important;\s*color:\s*var\(--sbterm-selected-fg\) !important;/s, 'host themes keep their own ::selection, so the palette must claim it outright');
     assert.doesNotMatch(css, /#gg_simple_send_button/, 'Simple Send is a distinct Guided Generations action and must stay visible');
     assert.match(css, /#sb_conversation_pals_rail\s*\{[^}]+visibility:\s*hidden;[^}]+pointer-events:\s*none;/s, 'closed off-screen rails must leave keyboard navigation');
     // The .mes_block ancestor and the :not(:has()) below are load-bearing: without

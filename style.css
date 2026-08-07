@@ -301,6 +301,8 @@ body.sbterm {
        fighting ::after when the CRT overlay claims it. */
     --sb-ambient-a: transparent;
     --sb-ambient-b: transparent;
+    --sb-selection-bg: var(--sbterm-accent);
+    --sb-selection-fg: var(--sbterm-selected-fg);
     --sb-mobile-overlay-bg: var(--sbterm-bg);
     --sb-mobile-panel-bg: var(--sbterm-bg);
     --sb-card-bg: var(--sbterm-bg-alt);
@@ -337,6 +339,15 @@ html body.sbterm *:not([class*='avatar' i], [id*='avatar' i])::after {
     text-shadow: none !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+}
+
+/* Text selection is the one highlight the host lets a theme keep for itself
+   (sillybunny-theme.css:151), so the tokens above aren't enough — a theme with
+   its own ::selection would still tint the block with its accent. Terminals
+   invert the selection, so take accent on accent-contrast. */
+body.sbterm ::selection {
+    background-color: var(--sbterm-accent) !important;
+    color: var(--sbterm-selected-fg) !important;
 }
 
 body.sbterm :is(.welcomePanel, .welcomeGuidePanel, .welcomePromptPanel) {
