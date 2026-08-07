@@ -56,7 +56,7 @@ Terminal UI adds `/sbterm` and `/home` and does not replace native commands such
 | `/sbterm status` | Show the live character/chat, API/model, run state, and last prompt token diagnostics |
 | `/sbterm on` / `/sbterm off` | Enable or disable the interface without disabling the extension |
 | `/sbterm ui terminal` / `/sbterm ui full` | Switch terminal density or full host chrome |
-| `/sbterm palette <slug>` | Select one of the 13 palettes |
+| `/sbterm palette <slug>` | Select one of the 15 palettes |
 | `/sbterm crt on` / `/sbterm crt off` | Toggle the optional CRT overlay |
 | `/sbterm avatar-tint on` / `/sbterm avatar-tint off` | Tint avatars to the active palette |
 | `/sbterm <destination>` | Open a SillyBunny shell or workspace |
@@ -91,7 +91,7 @@ The loading screen follows the active palette and shows the Terminal UI bunny in
 
 ## Palettes
 
-`phosphor-green`, `terminal-amber`, `gameboy-dmg`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`. See the [palette gallery](#palette-gallery) for all thirteen.
+`phosphor-green`, `terminal-amber`, `gameboy-dmg`, `gameboy-dmg-dark`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `paper-tape-dark`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`. See the [palette gallery](#palette-gallery) for all fifteen.
 
 CRT scanlines are optional and off by default. Motion stops under `prefers-reduced-motion`; the overlay is removed under forced colors or increased contrast.
 
@@ -157,6 +157,19 @@ Every palette, desktop and mobile, on the terminal Home screen. Captured from a 
   </tr>
 </table>
 
+### Game Boy DMG Dark
+
+`gameboy-dmg-dark`
+
+The same four DMG shades with the panel unlit — ink becomes screen, screen becomes ink.
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/gameboy-dmg-dark-desktop.webp" alt="Game Boy DMG Dark on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/gameboy-dmg-dark-mobile.webp" alt="Game Boy DMG Dark on mobile"></td>
+  </tr>
+</table>
+
 ### Teletext
 
 `teletext`
@@ -198,6 +211,19 @@ Every palette, desktop and mobile, on the terminal Home screen. Captured from a 
   <tr>
     <td width="72%"><img src="screenshots/palettes/paper-tape-desktop.webp" alt="Paper Tape on desktop"></td>
     <td width="28%"><img src="screenshots/palettes/paper-tape-mobile.webp" alt="Paper Tape on mobile"></td>
+  </tr>
+</table>
+
+### Paper Tape Dark
+
+`paper-tape-dark`
+
+Paper Tape read by lamplight — the same warm stock and inks, with the page turned to the dark side of the tape.
+
+<table>
+  <tr>
+    <td width="72%"><img src="screenshots/palettes/paper-tape-dark-desktop.webp" alt="Paper Tape Dark on desktop"></td>
+    <td width="28%"><img src="screenshots/palettes/paper-tape-dark-mobile.webp" alt="Paper Tape Dark on mobile"></td>
   </tr>
 </table>
 

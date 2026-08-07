@@ -1164,7 +1164,7 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.match(css, /\.sb-topbar-brand\s*\{[^}]*overflow:\s*visible;/s, 'the brand must not clip the status button overlay');
     assert.match(css, /@media \(forced-colors: active\)\s*\{[^}]+outline:\s*2px solid CanvasText !important;/s, 'system focus colors belong only to forced-colors mode');
     assert.doesNotMatch(css, /@media \(forced-colors: active\), \(prefers-contrast: more\)\s*\{[^}]+CanvasText/s, 'ordinary increased contrast must keep palette-aware focus rings');
-    const palettes = ['phosphor-green', 'terminal-amber', 'gameboy-dmg', 'teletext', 'chrome-98', 'dos-cobalt', 'paper-tape', 'vfd-cyan', 'dracula', 'gruvbox', 'solarized-dark', 'nord'];
+    const palettes = ['phosphor-green', 'terminal-amber', 'gameboy-dmg', 'gameboy-dmg-dark', 'teletext', 'chrome-98', 'dos-cobalt', 'paper-tape', 'paper-tape-dark', 'vfd-cyan', 'dracula', 'gruvbox', 'solarized-dark', 'nord'];
     const luminance = hex => {
         const channels = hex.match(/[0-9a-f]{2}/gi).map(value => {
             const channel = Number.parseInt(value, 16) / 255;

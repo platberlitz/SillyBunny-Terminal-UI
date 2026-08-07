@@ -55,6 +55,22 @@ body.sbterm[data-sbterm-palette='gameboy-dmg'] {
     --sbterm-glow: transparent;
 }
 
+/* The same four DMG shades with the panel unlit: ink becomes screen, screen
+   becomes ink. Monochrome by design like its light twin. */
+body.sbterm[data-sbterm-palette='gameboy-dmg-dark'] {
+    --sbterm-bg: #0f380f;
+    --sbterm-bg-alt: #1e4d1e;
+    --sbterm-fg: #9bbc0f;
+    --sbterm-fg-dim: #7f9c14;
+    --sbterm-accent: #9bbc0f;
+    --sbterm-accent2: #8bac0f;
+    --sbterm-ok: #9bbc0f;
+    --sbterm-warn: #9bbc0f;
+    --sbterm-err: #9bbc0f;
+    --sbterm-border: #8bac0f;
+    --sbterm-glow: transparent;
+}
+
 body.sbterm[data-sbterm-palette='teletext'] {
     --sbterm-bg: #050509;
     --sbterm-bg-alt: #12121a;
@@ -109,6 +125,22 @@ body.sbterm[data-sbterm-palette='paper-tape'] {
     --sbterm-err: #9c2f2f;
     --sbterm-border: #8b6942;
     --sbterm-glow: transparent;
+}
+
+/* Paper Tape read by lamplight: the same warm stock and inks, but the page is
+   the dark side of the tape and the ink glows off it. */
+body.sbterm[data-sbterm-palette='paper-tape-dark'] {
+    --sbterm-bg: #1c1611;
+    --sbterm-bg-alt: #272018;
+    --sbterm-fg: #e8dcc0;
+    --sbterm-fg-dim: #a8977a;
+    --sbterm-accent: #d99a5c;
+    --sbterm-accent2: #7fb3ac;
+    --sbterm-ok: #8fbfa8;
+    --sbterm-warn: #d9b45c;
+    --sbterm-err: #e08a7a;
+    --sbterm-border: #8a7149;
+    --sbterm-glow: rgba(217, 154, 92, 0.14);
 }
 
 body.sbterm[data-sbterm-palette='vfd-cyan'] {
