@@ -341,20 +341,44 @@ html body.sbterm *:not([class*='avatar' i], [id*='avatar' i])::after {
     backdrop-filter: none !important;
 }
 
-/* Optional palette duotone for avatars, off by default. `luminosity` keeps each
-   picture's own light and shade and takes hue and saturation from the accent
-   painted behind it, so one pair of rules covers all 13 palettes — including
-   `inherit` — with no per-palette constants. `isolation` keeps the blend inside
-   the avatar frame instead of letting it reach the page behind it, and
-   `:has(> img)` puts the accent fill on the frame that actually holds the
-   picture rather than on every card that happens to contain one. */
+/* Optional palette duotone for avatars, off by default. Recolouring alone isn't
+   enough: a hue swap leaves each photo at its own absolute brightness, so on a
+   light palette the pictures stayed dark slabs on a bright page. `multiply` over
+   a palette-coloured frame remaps the whole tonal range instead — highlights
+   land on --sbterm-avatar-tone and shadows fall away to black — which is how a
+   real phosphor screen or a DMG panel draws an image. `isolation` keeps the
+   blend inside the avatar frame instead of letting it reach the page behind it,
+   and `:has(> img)` puts the fill on the frame that actually holds the picture
+   rather than on every card that happens to contain one. */
+body.sbterm.sbterm-avatar-tinted {
+    /* Dark palettes light the picture up in the accent over a black page. */
+    --sbterm-avatar-tone: var(--sbterm-accent);
+    /* ponytail: two calibration knobs, not measurements — raise contrast if
+       midtones read muddy, lower it if faces blow out. */
+    --sbterm-avatar-filter: grayscale(1) contrast(1.05);
+}
+
+/* The three light palettes invert: the picture is printed as ink on the page
+   colour, so its highlights have to melt into the page rather than glow. Same
+   trio the §1 color-scheme split uses. `multiply` can only darken, so a dark
+   portrait would otherwise land as a black slab on a bright page — which is the
+   whole complaint this treatment exists to fix. Measured against both bright and
+   dark source art: lifting the range before the blend is what keeps a dark
+   picture legible here, and 1.55/0.7 is the point where dark art reads without
+   bright art washing flat. Same trio as the §1 color-scheme split. */
+body.sbterm.sbterm-avatar-tinted:is([data-sbterm-palette='gameboy-dmg'], [data-sbterm-palette='chrome-98'], [data-sbterm-palette='paper-tape']) {
+    --sbterm-avatar-tone: var(--sbterm-bg);
+    --sbterm-avatar-filter: grayscale(1) brightness(1.55) contrast(0.7);
+}
+
 body.sbterm.sbterm-avatar-tinted :is([class*='avatar' i], [id*='avatar' i]):has(> img) {
-    background-color: var(--sbterm-accent);
+    background-color: var(--sbterm-avatar-tone);
     isolation: isolate;
 }
 
 body.sbterm.sbterm-avatar-tinted :is([class*='avatar' i], [id*='avatar' i]) > img {
-    mix-blend-mode: luminosity;
+    filter: var(--sbterm-avatar-filter);
+    mix-blend-mode: multiply;
 }
 
 /* Text selection is the one highlight the host lets a theme keep for itself
@@ -694,10 +718,13 @@ body.sbterm:not(.sbterm-avatar-hidden).echostyle #chat .mes_text::before {
 
 /* Whisper and Echo paint the avatar as a `background:` shorthand, which resets
    background-color — so the §3 duotone can't reach them and they need the
-   background-image equivalent, later in source order than the shorthand above. */
+   background-image equivalent, later in source order than the shorthand above.
+   ponytail: `luminosity` recolours these banners but can't remap their tonal
+   range the way §3 does, because a background layer can't be desaturated before
+   it is multiplied. Restack them as two blended layers if it ever matters. */
 body.sbterm.sbterm-avatar-tinted.whisperstyle #chat .mes::before,
 body.sbterm.sbterm-avatar-tinted.echostyle #chat .mes_text::before {
-    background-color: var(--sbterm-accent) !important;
+    background-color: var(--sbterm-avatar-tone) !important;
     background-blend-mode: luminosity !important;
 }
 
@@ -2599,10 +2626,11 @@ body.sbterm.reduced-motion *::after {
         outline: 2px solid CanvasText !important;
     }
 
-    /* The accent fill behind a tinted avatar becomes a system colour here, so
-       the blend would duotone the picture to something nobody chose. Hand the
-       pictures back untouched instead. */
+    /* The fill behind a tinted avatar becomes a system colour here, so the blend
+       would duotone the picture to something nobody chose. Hand the pictures
+       back untouched instead. */
     body.sbterm.sbterm-avatar-tinted :is([class*='avatar' i], [id*='avatar' i]) > img {
+        filter: none;
         mix-blend-mode: normal;
     }
 }

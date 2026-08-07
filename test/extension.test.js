@@ -1113,13 +1113,21 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.equal(css.match(/border-radius:\s*0/g).length, 2, 'flat corners belong to the global reset, not to per-element rules');
     assert.equal(css.match(/box-shadow:\s*none/g).length, 1, 'flat surfaces belong to the global reset, not to per-element rules');
     assert.match(css, /text-shadow:\s*0 0 2px var\(--sbterm-glow\) !important;/, 'the CRT glow must outrank the global text-shadow reset');
-    // One duotone for all 13 palettes: the picture keeps its own luminance and
-    // takes hue from whichever accent is live, so no palette needs its own
-    // filter constants. Every rule stays behind the opt-in class.
-    assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\):has\(> img\)\s*\{[^}]*background-color:\s*var\(--sbterm-accent\);[^}]*isolation:\s*isolate;/s, 'the tint must fill the avatar frame with the palette accent and contain the blend');
-    assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\) > img\s*\{\s*mix-blend-mode:\s*luminosity;/, 'avatars must keep their own light and shade and take only the accent hue');
-    assert.match(css, /@media \(forced-colors: active\)\s*\{[^]*?\.sbterm-avatar-tinted[^{]+\{\s*mix-blend-mode:\s*normal;/s, 'forced colors must hand the pictures back untinted');
-    assert.equal(css.match(/mix-blend-mode:\s*luminosity/g).length, 1, 'the duotone belongs to one rule, not to per-surface enumeration');
+    // One duotone for all 13 palettes, driven by two tokens rather than a filter
+    // chain per palette. `multiply` is load-bearing: a hue-only blend left every
+    // picture at its own absolute brightness, so light palettes got dark slabs.
+    assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\):has\(> img\)\s*\{[^}]*background-color:\s*var\(--sbterm-avatar-tone\);[^}]*isolation:\s*isolate;/s, 'the tint must fill the avatar frame with the palette tone and contain the blend');
+    assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\) > img\s*\{[^}]*filter:\s*var\(--sbterm-avatar-filter\);[^}]*mix-blend-mode:\s*multiply;/s, 'the picture must be remapped into the palette range, not just recoloured');
+    assert.match(css, /@media \(forced-colors: active\)\s*\{[^]*?\.sbterm-avatar-tinted[^{]+\{[^}]*filter:\s*none;[^}]*mix-blend-mode:\s*normal;/s, 'forced colors must hand the pictures back untinted');
+    assert.equal(css.match(/mix-blend-mode:\s*multiply/g).length, 1, 'the duotone belongs to one rule, not to per-surface enumeration');
+    // The three light palettes print the picture as ink on the page instead of
+    // lighting it up on a black one, so the tone has to invert with them. Same
+    // trio as the §1 color-scheme split — if that list grows, this one must too.
+    const lightPalettes = css.match(/color-scheme:\s*light/)
+        ? css.match(/body\.sbterm:is\(([^)]*(?:\)[^)]*)*)\)\s*\{\s*color-scheme:\s*light;/)[1]
+        : '';
+    const tonePalettes = css.match(/body\.sbterm\.sbterm-avatar-tinted:is\(([^)]*(?:\)[^)]*)*)\)\s*\{[^}]*--sbterm-avatar-tone:\s*var\(--sbterm-bg\);/s)[1];
+    assert.equal(tonePalettes.replace(/\s+/g, ' '), lightPalettes.replace(/\s+/g, ' '), 'the inverted avatar tone must cover exactly the light palettes');
     for (const rule of css.match(/^body[^{]*sbterm-avatar-tinted[^{]*\{/gm) ?? []) {
         assert.match(rule, /body\.sbterm\b/, `${rule.trim()} must stay gated behind body.sbterm`);
     }
