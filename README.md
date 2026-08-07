@@ -95,7 +95,7 @@ The loading screen follows the active palette and shows the Terminal UI bunny in
 
 CRT scanlines are optional and off by default. Motion stops under `prefers-reduced-motion`; the overlay is removed under forced colors or increased contrast.
 
-Avatar tinting is optional and off by default. Turned on — with **Tint avatars to palette** in the extension drawer or `/sbterm avatar-tint on` — every avatar is redrawn in the palette rather than recoloured: its tones are remapped so highlights land on the palette and shadows fall away, the way a phosphor screen or a DMG panel draws a picture. Dark palettes light the picture up in the accent; the three light palettes print it as ink on the page instead. It covers character, persona, group, chat and Conversation Mode avatars, follows every palette including `inherit`, and is switched off under forced colors.
+Avatar tinting is optional and off by default. It reaches every avatar — including the bottom bar’s persona bubble and the persona picker, which the host paints differently from the rest. Turned on — with **Tint avatars to palette** in the extension drawer or `/sbterm avatar-tint on` — every avatar is redrawn in the palette rather than recoloured: its tones are remapped so highlights land on the palette and shadows fall away, the way a phosphor screen or a DMG panel draws a picture. Dark palettes light the picture up in the accent; the three light palettes print it as ink on the page instead. It covers character, persona, group, chat and Conversation Mode avatars, follows every palette including `inherit`, and is switched off under forced colors.
 
 ## Install
 

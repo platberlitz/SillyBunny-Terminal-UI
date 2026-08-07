@@ -1113,13 +1113,28 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.equal(css.match(/border-radius:\s*0/g).length, 2, 'flat corners belong to the global reset, not to per-element rules');
     assert.equal(css.match(/box-shadow:\s*none/g).length, 1, 'flat surfaces belong to the global reset, not to per-element rules');
     assert.match(css, /text-shadow:\s*0 0 2px var\(--sbterm-glow\) !important;/, 'the CRT glow must outrank the global text-shadow reset');
+    // Derived at :root from --SmartThemeBotMesBlurTintColor, so the §2 remap
+    // never reached them and Whisper/Hush/Tide/Echo painted every character turn
+    // with the host theme's dark tint. Redeclaring the source beats chasing the
+    // styles one at a time — each of their rules carries !important and outranks
+    // the transparent rule in §5.
+    assert.match(css, /body\.sbterm\s*\{[^]*?--moonlit-sb-bot-message-bg:\s*transparent;/, 'the character-turn fill must be redeclared on body, where the palette lives');
+    assert.match(css, /body\.sbterm\s*\{[^]*?--moonlit-sb-user-message-bg:\s*var\(--sbterm-user-mes-bg\);/, 'the user-turn fill must follow the same token the §5 rule uses');
+    assert.equal(css.match(/color-mix\(in oklch, var\(--sbterm-bg-alt\) 86%, var\(--sbterm-bg\)\)/g).length, 1, 'the user-turn fill belongs to one token, not to two rules that can drift');
     // One duotone for all 13 palettes, driven by two tokens rather than a filter
     // chain per palette. `multiply` is load-bearing: a hue-only blend left every
     // picture at its own absolute brightness, so light palettes got dark slabs.
     assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\):has\(> img\)\s*\{[^}]*background-color:\s*var\(--sbterm-avatar-tone\);[^}]*isolation:\s*isolate;/s, 'the tint must fill the avatar frame with the palette tone and contain the blend');
     assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\) > img\s*\{[^}]*filter:\s*var\(--sbterm-avatar-filter\);[^}]*mix-blend-mode:\s*multiply;/s, 'the picture must be remapped into the palette range, not just recoloured');
     assert.match(css, /@media \(forced-colors: active\)\s*\{[^]*?\.sbterm-avatar-tinted[^{]+\{[^}]*filter:\s*none;[^}]*mix-blend-mode:\s*normal;/s, 'forced colors must hand the pictures back untinted');
-    assert.equal(css.match(/mix-blend-mode:\s*multiply/g).length, 1, 'the duotone belongs to one rule, not to per-surface enumeration');
+    // Three, and only three: one per avatar SHAPE, not per surface. The framed
+    // <img> covers every ordinary avatar; the persona bubble is a bare button
+    // painted with a background-image; a picker row is a grid that also holds
+    // the persona name. A fourth means someone started enumerating surfaces.
+    assert.equal(css.match(/mix-blend-mode:\s*multiply/g).length, 3, 'the duotone belongs to one rule per avatar shape, not to per-surface enumeration');
+    assert.match(css, /#sb-persona-bubble\s*\{[^}]*background-blend-mode:\s*luminosity;/s, 'the bubble portrait is a background image, so it must be desaturated by blending, not by filter');
+    assert.match(css, /\.sb-persona-option::before\s*\{[^}]*grid-area:\s*1 \/ 1;[^}]*background:\s*var\(--sbterm-avatar-tone\);/s, 'the picker tone must sit in the portrait cell, not behind the whole row');
+    assert.match(css, /\.sb-persona-option > \.sb-persona-option-avatar\s*\{\s*grid-area:\s*1 \/ 1;/, 'the portrait must be pinned to its cell so the tone cannot displace it');
     // The three light palettes print the picture as ink on the page instead of
     // lighting it up on a black one, so the tone has to invert with them. Same
     // trio as the §1 color-scheme split — if that list grows, this one must too.

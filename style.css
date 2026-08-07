@@ -296,6 +296,17 @@ body.sbterm {
     --sb-button-hover: var(--sbterm-bg-alt);
     --sb-shell-tab-active-bg: var(--sbterm-bg-alt);
     --sb-shell-header-bg: var(--sbterm-bg-alt);
+    /* Same trap, and the one that painted a dark slab behind every character
+       turn: sillybunny-chat-styles.css derives these two from
+       --SmartThemeBotMesBlurTintColor AT :root, above the §2 remap, so they kept
+       the host theme's rgba(29,33,40,0.9) no matter which palette was live.
+       Whisper, Hush, Tide and Echo paint the character turn with them under
+       `!important` and outrank the transparent rule in §5, which is why Ripple —
+       whose rule only ties it — was the one style that looked right. Fixing the
+       source covers every style that reads them, now and later. */
+    --sbterm-user-mes-bg: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg));
+    --moonlit-sb-bot-message-bg: transparent;
+    --moonlit-sb-user-message-bg: var(--sbterm-user-mes-bg);
     /* body::before / body::after are fixed full-viewport ambient washes
        (sillybunny-theme.css:446). Neutralising the tokens kills both without
        fighting ::after when the CRT overlay claims it. */
@@ -356,6 +367,9 @@ body.sbterm.sbterm-avatar-tinted {
     /* ponytail: two calibration knobs, not measurements — raise contrast if
        midtones read muddy, lower it if faces blow out. */
     --sbterm-avatar-filter: grayscale(1) contrast(1.05);
+    /* The same shadow lift as the brightness half of the filter above, for the
+       surfaces that can only reach it through an overlay. */
+    --sbterm-avatar-lift: 0;
 }
 
 /* The three light palettes invert: the picture is printed as ink on the page
@@ -369,6 +383,7 @@ body.sbterm.sbterm-avatar-tinted {
 body.sbterm.sbterm-avatar-tinted:is([data-sbterm-palette='gameboy-dmg'], [data-sbterm-palette='chrome-98'], [data-sbterm-palette='paper-tape']) {
     --sbterm-avatar-tone: var(--sbterm-bg);
     --sbterm-avatar-filter: grayscale(1) brightness(1.55) contrast(0.7);
+    --sbterm-avatar-lift: 0.34;
 }
 
 body.sbterm.sbterm-avatar-tinted :is([class*='avatar' i], [id*='avatar' i]):has(> img) {
@@ -687,7 +702,7 @@ body.sbterm #chat .mes:is(:hover, :focus-within) {
    share this now; Terminal density only adds its own spacing. */
 body.sbterm #chat .mes[is_user='true'],
 body.sbterm #chat .mes[is_user='true']:is(:hover, :focus-within) {
-    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg)) !important;
+    background-color: var(--sbterm-user-mes-bg) !important;
 }
 
 body.sbterm #chat .mes::before,
@@ -1081,6 +1096,69 @@ body.sbterm #sb-persona-bubble {
 
 body.sbterm #sb-persona-bubble:hover {
     border-color: var(--sbterm-accent) !important;
+}
+
+/* The bottom bar's persona portrait and the picker rows below it are the two
+   avatar shapes the §3 duotone can't reach: the bubble is a bare button whose
+   portrait is an inline background-image, so there is no frame to fill, and a
+   picker row is a grid holding the portrait AND the persona name, so filling
+   its frame would put a slab of accent behind every name. Both are given the
+   same duotone by other means rather than left as the only untinted avatars.
+
+   Blending the inline background against white desaturates it in place — the
+   grayscale step the <img> rule gets from `filter`, which is unusable here
+   because it would recolour the tint overlay along with the portrait. */
+body.sbterm.sbterm-avatar-tinted #sb-persona-bubble {
+    position: relative;
+    isolation: isolate;
+    background-color: #fff !important;
+    background-blend-mode: luminosity;
+}
+
+body.sbterm.sbterm-avatar-tinted #sb-persona-bubble::before,
+body.sbterm.sbterm-avatar-tinted #sb-persona-bubble::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+body.sbterm.sbterm-avatar-tinted #sb-persona-bubble::before {
+    background: #fff;
+    opacity: var(--sbterm-avatar-lift);
+    mix-blend-mode: screen;
+}
+
+body.sbterm.sbterm-avatar-tinted #sb-persona-bubble::after {
+    background: var(--sbterm-avatar-tone);
+    mix-blend-mode: multiply;
+}
+
+/* The row already gives the portrait a column of its own, so the tone is
+   painted as one more item in that same cell instead of across the button.
+   Both are pinned to 1/1: an explicitly placed pseudo-element would otherwise
+   push the portrait out of the cell auto-placement had been giving it. */
+body.sbterm.sbterm-avatar-tinted .sb-persona-option {
+    isolation: isolate;
+}
+
+body.sbterm.sbterm-avatar-tinted .sb-persona-option::before {
+    content: '';
+    grid-area: 1 / 1;
+    inline-size: 100%;
+    aspect-ratio: 1;
+    background: var(--sbterm-avatar-tone);
+    /* Round to match the portrait it sits under — a square patch would show its
+       corners around the circle. Avatars are the one carve-out from the flat
+       reset, and this is the shape they are carved out for. */
+    border-radius: 50% !important;
+}
+
+body.sbterm.sbterm-avatar-tinted .sb-persona-option > .sb-persona-option-avatar {
+    grid-area: 1 / 1;
+    filter: var(--sbterm-avatar-filter);
+    mix-blend-mode: multiply;
 }
 
 body.sbterm #sb-bottom-chat-select {
@@ -2033,7 +2111,7 @@ body.sbterm.sbterm-minimal .sb-conversation-message {
 body.sbterm.sbterm-minimal .sb-conversation-message[data-role='user'] {
     margin-block-end: 18px !important;
     padding-block: 9px;
-    background-color: color-mix(in oklch, var(--sbterm-bg-alt) 86%, var(--sbterm-bg)) !important;
+    background-color: var(--sbterm-user-mes-bg) !important;
 }
 
 body.sbterm.sbterm-minimal .sb-conversation-message[data-role='user'] .sb-conversation-message-bubble::before {
@@ -2628,9 +2706,19 @@ body.sbterm.reduced-motion *::after {
 
     /* The fill behind a tinted avatar becomes a system colour here, so the blend
        would duotone the picture to something nobody chose. Hand the pictures
-       back untouched instead. */
-    body.sbterm.sbterm-avatar-tinted :is([class*='avatar' i], [id*='avatar' i]) > img {
+       back untouched instead, overlays included. */
+    body.sbterm.sbterm-avatar-tinted :is([class*='avatar' i], [id*='avatar' i]) > img,
+    body.sbterm.sbterm-avatar-tinted .sb-persona-option > .sb-persona-option-avatar {
         filter: none;
         mix-blend-mode: normal;
+    }
+
+    body.sbterm.sbterm-avatar-tinted #sb-persona-bubble {
+        background-blend-mode: normal;
+    }
+
+    body.sbterm.sbterm-avatar-tinted :is(#sb-persona-bubble, .sb-persona-option)::before,
+    body.sbterm.sbterm-avatar-tinted #sb-persona-bubble::after {
+        display: none;
     }
 }
