@@ -58,6 +58,7 @@ Terminal UI adds `/sbterm` and `/home` and does not replace native commands such
 | `/sbterm ui terminal` / `/sbterm ui full` | Switch terminal density or full host chrome |
 | `/sbterm palette <slug>` | Select one of the 13 palettes |
 | `/sbterm crt on` / `/sbterm crt off` | Toggle the optional CRT overlay |
+| `/sbterm avatar-tint on` / `/sbterm avatar-tint off` | Tint avatars to the active palette |
 | `/sbterm <destination>` | Open a SillyBunny shell or workspace |
 | `/home` | Return to the terminal Home screen (`/open-homepage` shows the native Home page) |
 
@@ -93,6 +94,8 @@ The loading screen follows the active palette and shows the Terminal UI bunny in
 `phosphor-green`, `terminal-amber`, `gameboy-dmg`, `teletext`, `chrome-98`, `dos-cobalt`, `paper-tape`, `vfd-cyan`, `dracula`, `gruvbox`, `solarized-dark`, `nord`, and `inherit`. See the [palette gallery](#palette-gallery) for all thirteen.
 
 CRT scanlines are optional and off by default. Motion stops under `prefers-reduced-motion`; the overlay is removed under forced colors or increased contrast.
+
+Avatar tinting is optional and off by default. Turned on — with **Tint avatars to palette** in the extension drawer or `/sbterm avatar-tint on` — every avatar keeps its own light and shade but takes the hue of the active palette, so portraits read as part of the terminal instead of the only colour on screen. It covers character, persona, group, chat and Conversation Mode avatars, follows every palette including `inherit`, and is switched off under forced colors.
 
 ## Install
 

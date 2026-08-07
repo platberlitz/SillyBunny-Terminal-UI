@@ -374,7 +374,7 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
             // Seeded at the current version in terminal density so the rest of
             // this test exercises that mode; the shipped defaults (Full chrome,
             // both bars on) are asserted from source below.
-            'SillyBunny-Terminal-UI': { version: 4, enabled: true, palette: 'nord', crt: false, minimal: true, topbarVisible: null, avatarVisible: true, chatTopbarVisible: null, bottomBarVisible: null },
+            'SillyBunny-Terminal-UI': { version: 4, enabled: true, palette: 'nord', crt: false, minimal: true, topbarVisible: null, avatarVisible: true, avatarTint: false, chatTopbarVisible: null, bottomBarVisible: null },
         },
         saveSettingsDebounced: () => saves += 1,
         SlashCommandParser: parser,
@@ -793,6 +793,16 @@ test('lifecycle and /sbterm remain owned, reversible, and idempotent', async () 
     assert.equal(settings.avatarVisible, true);
     assert(!document.body.classList.contains('sbterm-avatar-hidden'));
 
+    // The tint is styling, not visibility, so it rides /sbterm like crt does.
+    assert.equal(await command.callback({}, 'avatar-tint on'), 'true');
+    assert.equal(settings.avatarTint, true);
+    assert(document.body.classList.contains('sbterm-avatar-tinted'));
+    assert.equal(document.getElementById('sbterm-avatar-tint').checked, true, 'the drawer checkbox must follow /sbterm avatar-tint');
+    assert.equal(await command.callback({}, 'avatar-tint off'), 'false');
+    assert.equal(settings.avatarTint, false);
+    assert(!document.body.classList.contains('sbterm-avatar-tinted'));
+    assert.equal(document.getElementById('sbterm-avatar-tint').checked, false);
+
     await parser.commands['hide-chat-topbar'].callback();
     assert.equal(settings.chatTopbarVisible, false);
     assert(document.body.classList.contains('sbterm-chat-topbar-hidden'));
@@ -1054,6 +1064,7 @@ test('shipped defaults are Full chrome with both chat bars on', async () => {
     const source = await readFile(new URL('../index.js', import.meta.url), 'utf8');
     const defaults = source.match(/const DEFAULTS = \{([^}]+)\}/)[1];
     assert.match(defaults, /minimal: false/, 'Full chrome is the default interface');
+    assert.match(defaults, /avatarTint: false/, 'avatar tinting is opt-in, like the CRT overlay');
     // null, not true: Full chrome shows both bars anyway, and forcing them on
     // left Terminal density with almost nothing to strip.
     assert.match(defaults, /chatTopbarVisible: null/, 'the chat tool bar follows the density until set');
@@ -1061,7 +1072,7 @@ test('shipped defaults are Full chrome with both chat bars on', async () => {
 
     // Every visibility setting needs a checkbox and a matching sync entry, or
     // the drawer silently drifts from what the slash commands did.
-    for (const id of ['sbterm-show-topbar', 'sbterm-show-chat-topbar', 'sbterm-show-bottom-bar', 'sbterm-show-avatar']) {
+    for (const id of ['sbterm-show-topbar', 'sbterm-show-chat-topbar', 'sbterm-show-bottom-bar', 'sbterm-show-avatar', 'sbterm-avatar-tint']) {
         assert.equal(source.split(`'${id}'`).length - 1, 2, `${id} needs both a checkbox row and a syncDrawer entry`);
     }
 });
@@ -1102,6 +1113,16 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.equal(css.match(/border-radius:\s*0/g).length, 2, 'flat corners belong to the global reset, not to per-element rules');
     assert.equal(css.match(/box-shadow:\s*none/g).length, 1, 'flat surfaces belong to the global reset, not to per-element rules');
     assert.match(css, /text-shadow:\s*0 0 2px var\(--sbterm-glow\) !important;/, 'the CRT glow must outrank the global text-shadow reset');
+    // One duotone for all 13 palettes: the picture keeps its own luminance and
+    // takes hue from whichever accent is live, so no palette needs its own
+    // filter constants. Every rule stays behind the opt-in class.
+    assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\):has\(> img\)\s*\{[^}]*background-color:\s*var\(--sbterm-accent\);[^}]*isolation:\s*isolate;/s, 'the tint must fill the avatar frame with the palette accent and contain the blend');
+    assert.match(css, /body\.sbterm\.sbterm-avatar-tinted :is\(\[class\*='avatar' i\], \[id\*='avatar' i\]\) > img\s*\{\s*mix-blend-mode:\s*luminosity;/, 'avatars must keep their own light and shade and take only the accent hue');
+    assert.match(css, /@media \(forced-colors: active\)\s*\{[^]*?\.sbterm-avatar-tinted[^{]+\{\s*mix-blend-mode:\s*normal;/s, 'forced colors must hand the pictures back untinted');
+    assert.equal(css.match(/mix-blend-mode:\s*luminosity/g).length, 1, 'the duotone belongs to one rule, not to per-surface enumeration');
+    for (const rule of css.match(/^body[^{]*sbterm-avatar-tinted[^{]*\{/gm) ?? []) {
+        assert.match(rule, /body\.sbterm\b/, `${rule.trim()} must stay gated behind body.sbterm`);
+    }
     // A mask, not an <img>: the bunny takes the palette accent instead of a
     // baked-in colour, so the splash matches whichever palette is active.
     assert.match(css, /\.splash-logo\s*\{\s*display:\s*none !important;/, 'the raster SillyBunny badge must not show on the terminal splash');

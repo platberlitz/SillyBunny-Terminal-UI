@@ -31,7 +31,7 @@ const PALETTE_IDS = PALETTES.map(([id]) => id);
 // — wins in both densities. Since Full chrome is the shipped density, null
 // already means "on out of the box" while leaving Terminal something to strip;
 // forcing them true made the two densities near-identical.
-const DEFAULTS = { version: 4, enabled: true, palette: 'phosphor-green', crt: false, minimal: false, topbarVisible: null, avatarVisible: true, chatTopbarVisible: null, bottomBarVisible: null };
+const DEFAULTS = { version: 4, enabled: true, palette: 'phosphor-green', crt: false, minimal: false, topbarVisible: null, avatarVisible: true, avatarTint: false, chatTopbarVisible: null, bottomBarVisible: null };
 
 /* The Moonlit Echoes theme extension restyles the same surfaces this reskin
    owns and the two fight; while Terminal UI is on, its stylesheets are turned
@@ -103,6 +103,8 @@ const COMMAND_OPTIONS = [
     ['ui full', 'Show the complete host chrome'],
     ['crt on', 'Enable the optional CRT overlay'],
     ['crt off', 'Disable the CRT overlay'],
+    ['avatar-tint on', 'Tint avatars to the active palette'],
+    ['avatar-tint off', 'Show avatars in their original colours'],
     ...PALETTES.map(([id, name]) => [`palette ${id}`, `Use the ${name} palette`]),
     ...Object.keys(SHELL_DESTINATIONS)
         .filter(destination => !destination.startsWith('open-'))
@@ -233,6 +235,7 @@ function ensureSettings() {
         minimal: typeof settings.minimal === 'boolean' ? settings.minimal : DEFAULTS.minimal,
         topbarVisible: typeof settings.topbarVisible === 'boolean' ? settings.topbarVisible : null,
         avatarVisible: typeof settings.avatarVisible === 'boolean' ? settings.avatarVisible : DEFAULTS.avatarVisible,
+        avatarTint: typeof settings.avatarTint === 'boolean' ? settings.avatarTint : DEFAULTS.avatarTint,
         chatTopbarVisible: typeof settings.chatTopbarVisible === 'boolean' ? settings.chatTopbarVisible : null,
         bottomBarVisible: typeof settings.bottomBarVisible === 'boolean' ? settings.bottomBarVisible : null,
     };
@@ -307,6 +310,7 @@ function apply() {
     const bottomBarVisible = settings.bottomBarVisible ?? densityDefault;
     document.body.classList.toggle('sbterm-topbar-hidden', enabled && !topbarVisible);
     document.body.classList.toggle('sbterm-avatar-hidden', enabled && !settings.avatarVisible);
+    document.body.classList.toggle('sbterm-avatar-tinted', enabled && settings.avatarTint);
     document.body.classList.toggle('sbterm-chat-topbar-hidden', enabled && !chatTopbarVisible);
     document.body.classList.toggle('sbterm-bottom-bar-hidden', enabled && !bottomBarVisible);
 
@@ -425,6 +429,7 @@ function renderDrawer() {
         checkboxRow('sbterm-show-chat-topbar', 'Show chat tool bar', settings.chatTopbarVisible ?? densityDefault, value => updateSettings({ chatTopbarVisible: value })),
         checkboxRow('sbterm-show-bottom-bar', 'Show chat bottom bar', settings.bottomBarVisible ?? densityDefault, value => updateSettings({ bottomBarVisible: value })),
         checkboxRow('sbterm-show-avatar', 'Show chat avatars', settings.avatarVisible, value => updateSettings({ avatarVisible: value })),
+        checkboxRow('sbterm-avatar-tint', 'Tint avatars to palette', settings.avatarTint, value => updateSettings({ avatarTint: value })),
         el('small', 'sbterm-command-hint', 'Navigate from either prompt with /sbterm. Type /sbterm and use autocomplete.'),
     );
 
@@ -460,6 +465,7 @@ function syncDrawer() {
         'sbterm-show-chat-topbar': settings.chatTopbarVisible ?? densityDefault,
         'sbterm-show-bottom-bar': settings.bottomBarVisible ?? densityDefault,
         'sbterm-show-avatar': settings.avatarVisible,
+        'sbterm-avatar-tint': settings.avatarTint,
     };
     for (const [id, value] of Object.entries(visibility)) {
         const box = document.getElementById(id);
@@ -1035,6 +1041,13 @@ async function runSbtermCommand(_named, unnamed) {
         const enabled = input.endsWith('on');
         updateSettings({ crt: enabled });
         notify(`CRT overlay ${enabled ? 'enabled' : 'disabled'}.`, 'success');
+        return String(enabled);
+    }
+
+    if (input === 'avatar-tint on' || input === 'avatar-tint off') {
+        const enabled = input.endsWith('on');
+        updateSettings({ avatarTint: enabled });
+        notify(`Avatar tint ${enabled ? 'enabled' : 'disabled'}.`, 'success');
         return String(enabled);
     }
 
@@ -1615,7 +1628,7 @@ function deactivate() {
     if (typeof document !== 'undefined') {
         document.getElementById(DRAWER_ID)?.remove();
         document.getElementById(BANNER_ID)?.remove();
-        document.body?.classList.remove('sbterm', 'sbterm-minimal', 'sbterm-crt', HOME_VISIBLE_CLASS, 'sbterm-topbar-hidden', 'sbterm-avatar-hidden', 'sbterm-chat-topbar-hidden', 'sbterm-bottom-bar-hidden');
+        document.body?.classList.remove('sbterm', 'sbterm-minimal', 'sbterm-crt', HOME_VISIBLE_CLASS, 'sbterm-topbar-hidden', 'sbterm-avatar-hidden', 'sbterm-avatar-tinted', 'sbterm-chat-topbar-hidden', 'sbterm-bottom-bar-hidden');
         if (document.body) delete document.body.dataset.sbtermPalette;
     }
 }
