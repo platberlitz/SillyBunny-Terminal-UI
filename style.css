@@ -439,8 +439,11 @@ body.sbterm ::-webkit-scrollbar-track {
    Strip ONLY what the user agent adds to a button — border, background and
    padding must come from the host's .inline-drawer-header like every sibling
    extension's header (style.css:6035), or this one row reads as a different
-   theme sitting in the middle of the Extensions list. */
-body.sbterm #sbterm-settings-drawer > .inline-drawer-toggle {
+   theme sitting in the middle of the Extensions list.
+   Deliberately NOT scoped to body.sbterm: a button shrink-wraps to its content
+   where the siblings' <div> headers fill the row, and that is true whether or
+   not the interface is switched on. */
+#sbterm-settings-drawer > .inline-drawer-toggle {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;

@@ -1107,6 +1107,10 @@ test('static UI rules preserve contrast and density boundaries', async () => {
     assert.match(css, /\.splash-logo\s*\{\s*display:\s*none !important;/, 'the raster SillyBunny badge must not show on the terminal splash');
     assert.match(css, /#loader\.splash-screen::before\s*\{[^}]*background-color:\s*var\(--sbterm-accent2\);[^}]*mask-image:\s*url\("data:image\/svg\+xml;base64,/s, 'the splash bunny must be a palette-tinted mask');
     assert.doesNotMatch(css, /#sbterm-settings-drawer > \.inline-drawer-toggle\s*\{[^}]*\b(border|padding|background):/s, "the extension's own drawer must inherit the host header chrome its siblings get");
+    // A <button> shrink-wraps where the siblings' <div> headers fill the row
+    // (measured: 163px against 780px), so this normalisation cannot be scoped
+    // to body.sbterm or the drawer goes narrow whenever the interface is off.
+    assert.match(css, /(?<!body\.sbterm )#sbterm-settings-drawer > \.inline-drawer-toggle\s*\{[^}]*width:\s*100%;/s, 'the drawer trigger must fill its row whether or not the interface is on');
     assert.match(css, /--sb-bottom-chat-mobile-button-size:\s*var\(--sb-mobile-touch-target, 44px\);/, 'bottom-bar controls must inherit the 44px touch target');
     // Measured: a 44px min-height here made the status row 44px and the banner
     // 63px inside a 54px fixed top bar, clipping the title. The overlay keeps
